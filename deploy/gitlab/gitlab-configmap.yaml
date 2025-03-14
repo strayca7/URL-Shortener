@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitlab-config
+  namespace: cat-devops
+data:
+  gitlab.rb: |
+    external_url 'http://gitlab.devops.com'
+    gitlab_rails['initial_root_password'] = "admin123"
+    gitlab_rails['time_zone'] = 'Asia/Shanghai'
+    nginx['listen_port'] = 80
+    gitlab_rails['initial_root_password'] = "admin123"  
+    gitlab_rails['gitlab_shell_ssh_port'] = 22
+    gitlab_rails['gitlab_shell_timeout'] = 800
+    gitlab_rails['gitlab_shell_ssh_dir'] = "/var/opt/gitlab/gitlab-shell"
+    user['uid'] = 0
+    user['gid'] = 0
+    web_server['external_users'] = ['nobody']
+    postgresql['shared_buffers'] = "256MB"
+    redis['maxmemory'] = "512MB"
+    sidekiq['max_concurrency'] = 10
+    
+    # 当内存等资源不足时（实验环境）可选以下参数
+    # puma['worker_processes'] = 2
+    # postgresql['shared_buffers'] = "128MB"
+    # postgresql['max_worker_processes'] = 4
+    # prometheus_monitoring['enable'] = false

@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: gitlab
+  namespace: devops
+  labels:
+    app: gitlab
+spec:
+  selector:
+    matchLabels:
+      app: gitlab
+  serviceName: gitlab-headless
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: In
+                values:
+                - master
+      tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      securityContext:
+        runAsUser: 0
+        fsGroup: 0
+        supplementalGroups: [0]
+      containers:
+      - name: gitlab
+        image: gitlab/gitlab-ce:15.0.0-ce.0
+        env:
+        - name: GITLAB_OMNIBUS_CONFIG
+          value: |
+            external_url 'http://gitlab.devops.com'
+            gitlab_rails['initial_root_password'] = "admin123"
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "1500m"
+            memory: "2Gi"
+          limits:
+            cpu: "3000m"
+            memory: "4Gi"
+        readinessProbe:
+          httpGet:
+            path: /users/sign_in
+            port: 80
+          initialDelaySeconds: 300
+          periodSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 600
+          periodSeconds: 10
+        volumeMounts:
+        - name: gitlab-config
+          mountPath: /etc/gitlab/gitlab.rb
+          subPath: gitlab.rb
+        - name: gitlab-data
+          mountPath: /var/opt/gitlab
+      volumes:
+        - name: gitlab-config
+          configMap:
+            name: gitlab-config
+            defaultMode: 0644
+        - name: gitlab-data
+          persistentVolumeClaim:
+            claimName: gitlab-data
+  # volumeClaimTemplates:
+  # - metadata:
+  #     name: gitlab-data
+  #   spec:
+  #     accessModes: [ "ReadWriteOnce" ]
+  #     resources:
+  #       requests:
+  #         storage: 50Gi

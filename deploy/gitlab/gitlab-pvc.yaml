@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitlab-data
+  namespace: devops
+spec:
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: nfs-storage
+  accessModes:
+    - ReadWriteMany

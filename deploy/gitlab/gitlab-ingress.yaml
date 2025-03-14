@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gitlab-ingress
+  namespace: devops
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"  # 不限制上传文件大小
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: gitlab.devops.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: gitlab-nodeport
+            port: 
+              number: 80
