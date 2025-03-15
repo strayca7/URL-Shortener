@@ -34,4 +34,5 @@ func CloseRedis() {
 	if err := RedisCli.Close(); err != nil {
 		log.Fatalf("Failed to close Redis connection: %v", err)
 	}
+	log.Println("Redis connection closed.")
 }

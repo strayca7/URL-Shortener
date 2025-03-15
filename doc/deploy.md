@@ -90,6 +90,8 @@ kubectl apply -f deploy/jenkins
 
 # GitLab
 
+确保调度节点内存大于 4GB。
+
 ```bash
 kubectl apply -f deploy/gitlab
 ```

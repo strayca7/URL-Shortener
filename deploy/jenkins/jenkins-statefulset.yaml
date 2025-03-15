@@ -43,3 +43,6 @@ spec:
       resources:
         requests:
           storage: 20Gi
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
