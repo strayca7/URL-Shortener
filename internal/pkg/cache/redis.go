@@ -36,3 +36,21 @@ func CloseRedis() {
 	}
 	log.Println("Redis connection closed.")
 }
+
+func GetURL(shortCode string) (string, error) {
+	ctx := context.Background()
+	longURL, err := RedisCli.Get(ctx, shortCode).Result()
+	if err != nil {
+		return "", err
+	}
+	return longURL, nil
+}
+
+func SetURL(shortCode, longURL string) error {
+	ctx := context.Background()
+	err := RedisCli.Set(ctx, shortCode, longURL, 0).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
