@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -13,40 +14,43 @@ import (
 
 var MysqlDB *gorm.DB
 
-type ShortURL struct {
-	gorm.Model
-	UserID      uint      `gorm:"not null;index"`         // 外键（关联用户）
-	OriginalURL string    `gorm:"type:text;not null"`    // 原始 URL
-	ShortCode   string    `gorm:"type:varchar(10);uniqueIndex;not null"` // 短链码
-	ExpireAt    time.Time // 过期时间
-	AccessCount int       `gorm:"default:0"`             // 访问计数
+// User表结构
+type User struct {
+    gorm.Model
+    UserID       string    `gorm:"type:varchar(36);uniqueIndex;not null"` // UUID格式
+    Email        string    `gorm:"type:varchar(255);uniqueIndex;not null"`
+    PasswordHash string    `gorm:"type:varchar(255);not null"` // 存储bcrypt哈希
+    ShortURLs    []ShortURL `gorm:"foreignKey:UserID;references:UserID;onDelete:CASCADE"`
 }
 
-type User struct {
-	gorm.Model              // 内嵌 gorm.Model（包含 ID、CreatedAt 等字段）
-	Name         string    `gorm:"type:varchar(100);not null"`
-	Email        string    `gorm:"type:varchar(255);uniqueIndex;not null"`
-	PasswordHash string    `gorm:"type:char(60);not null"` // Bcrypt 哈希值
-	ShortURLs    []ShortURL `gorm:"foreignKey:UserID"`     // 一对多关联
+// 短链表结构
+type ShortURL struct {
+    gorm.Model
+    OriginalURL  string    `gorm:"type:text;not null"`
+    ShortCode    string    `gorm:"type:varchar(10);uniqueIndex;not null"` // 短码建议6-10位
+    ExpireAt     time.Time `gorm:"index"`                                  // 过期时间索引
+    AccessCount  int       `gorm:"default:0"`
+    UserID       string    `gorm:"type:varchar(36);index;not null"`       // 外键关联
 }
+
 func InitMysqlDB() {
 	if err := godotenv.Load("../.env"); err != nil {
 		log.Fatalf("Failed to load .env file: %v", err)
 	}
 	var (
-		mydbUser	 = os.Getenv("MYSQL_USER")
+		mydbUser     = os.Getenv("MYSQL_USER")
 		mydbPassword = os.Getenv("MYSQL_PASSWORD")
-		mydbHost 	 = os.Getenv("MYSQL_HOST")
-		mydbPort 	 = os.Getenv("MYSQL_PORT")
-		mydbName 	 = os.Getenv("MYSQL_DATABASE")
+		mydbHost     = os.Getenv("MYSQL_HOST")
+		mydbPort     = os.Getenv("MYSQL_PORT")
+		mydbName     = os.Getenv("MYSQL_DATABASE")
 	)
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", mydbUser, mydbPassword, mydbHost, mydbPort, mydbName)
-    var open_err error
+	var open_err error
 	MysqlDB, open_err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
-    if open_err != nil {
-        log.Fatal(open_err)
-    }
-    
+	if open_err != nil {
+		log.Fatal(open_err)
+	}
+
 	sqlDB, err := MysqlDB.DB()
 	if err != nil {
 		log.Fatalf("Failed to get underlying *sql.DB: %v", err)
@@ -85,7 +89,7 @@ func GetURL(shortCode string) (string, error) {
 	}
 	return shortURL.OriginalURL, nil
 }
-func SaveURL(shortCode, longURL string) error {
+func SaveURL(shortCode string, longURL string, c *gin.Context) error {
 	return MysqlDB.Create(&ShortURL{OriginalURL: longURL, ShortCode: shortCode}).Error
 }
 
