@@ -22,7 +22,7 @@ const (
 	machineShift    = sequenceBits
 )
 
-type Snowflake struct {
+type snowflake struct {
 	mu            sync.Mutex
 	lastTimestamp int64
 	datacenterID  int64
@@ -36,21 +36,21 @@ type Snowflake struct {
 // NewSnowflake returns a Snowflake object according to datacenterID and machineID,
 // datacenterID and machineID represent the data center ID and machine ID, respectively,
 // both of which can be selected between 0 and 31. If out of range, an error is returned.
-func NewSnowflake(datacenterID, machineID int64) (*Snowflake, error) {
+func newSnowflake(datacenterID, machineID int64) (*snowflake, error) {
 	if datacenterID < 0 || datacenterID > maxDatacenterID {
 		return nil, errors.New("invalid datacenter ID")
 	}
 	if machineID < 0 || machineID > maxMachineID {
 		return nil, errors.New("invalid machine ID")
 	}
-	return &Snowflake{
+	return &snowflake{
 		// lastTimestamp: time.Now().UnixNano() / 1e6,
 		datacenterID: datacenterID,
 		machineID:    machineID,
 	}, nil
 }
 
-func (s *Snowflake) Generate() (int64, error) {
+func (s *snowflake) Generate() (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -81,7 +81,7 @@ func (s *Snowflake) Generate() (int64, error) {
 	return id, nil
 }
 
-func (s *Snowflake) waitNextMillis(current int64) int64 {
+func (s *snowflake) waitNextMillis(current int64) int64 {
 	for current <= s.lastTimestamp {
 		current = time.Now().UnixNano() / 1e6
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -34,5 +35,9 @@ func TestEnv(t *testing.T) {
 
 func TestMysql(t *testing.T) {
 	InitMysqlDB()
+	for i := range 10 {
+		// MysqlDB.Create(&User{Email: fmt.Sprintf("testd%d@example.com", i), PasswordHash: "test", UserID: fmt.Sprintf("test%d", i), })
+		MysqlDB.Create(&ShortURL{OriginalURL: fmt.Sprintf("test%d", i), ShortCode: fmt.Sprintf("url%d", i), UserID: fmt.Sprintf("test%d", i), ExpireAt: time.Now().Add(time.Hour * 24)})
+	}
 	defer CloseMysqlDB()
 }

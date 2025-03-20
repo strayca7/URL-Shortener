@@ -16,7 +16,7 @@ import (
 
 // ShorterCodeCreater 短链创建方法，集成 Snowflake、Base62，并存储到数据库。
 //
-// ShorterCodeCreater creates a shorter code, integrating Snowflake and Base62, 
+// ShorterCodeCreater creates a shorter code, integrating Snowflake and Base62,
 // and stores it in the database.
 func ShortCodeCreater(c *gin.Context) {
 	var req struct {
@@ -28,17 +28,17 @@ func ShortCodeCreater(c *gin.Context) {
 	}
 
 	// 生成短链（Base62 编码），Snowflake 算法确保唯一性，不用去重
-	shortCode, err := CreateShortURL()
+	shortCode, err := createShortURL()
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to create short URL"})
 		return
 	}
 
-	// 存储到 MySQL
-  if err := database.MysqlDB.Create(&database.ShortURL{ShortCode: shortCode, OriginalURL: req.LongURL}).Error; err != nil {
-    c.JSON(500, gin.H{"error": "save failed"})
-    return
-}
+	// td: ShortURL 缺UserID ...
+	if err := database.MysqlDB.Create(&database.ShortURL{ShortCode: shortCode, OriginalURL: req.LongURL}).Error; err != nil {
+		c.JSON(500, gin.H{"error": "save failed"})
+		return
+	}
 
 	// 缓存到 Redis（过期时间 24h）
 	if err := cache.SetURL(shortCode, req.LongURL); err != nil {

@@ -21,14 +21,14 @@ func TestBase62Hash(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Base62Encode(tt.num)
+			got := base62Encode(tt.num)
 			fmt.Println("got:", got)
 		})
 	}
 }
 
 func TestSnowflake(t *testing.T) {
-	sf, err := NewSnowflake(1, 1)
+	sf, err := newSnowflake(1, 1)
 	if err != nil {
 		panic(err)
 	}
@@ -37,7 +37,7 @@ func TestSnowflake(t *testing.T) {
 	id, _ := sf.Generate()
 
 	// 转换为 Base62 短码
-	shortCode := Base62Encode(id)
+	shortCode := base62Encode(id)
 
 	fmt.Printf("Snowflake ID: %d\n", id)
 	fmt.Printf("Short Code: %s\n", shortCode) // 例如: "abc123"

@@ -13,7 +13,7 @@ var shuffledChars = shuffleBase62(base62Chars)
 // Base62Encode，将 Snowflake ID 转换为 Base62 短码, 该短码会按顺序生成。
 //
 // Base62Encode converts a Snowflake ID to a base62 string, which is generated sequentially.
-func Base62Encode(num int64) string {
+func base62Encode(num int64) string {
 	if num == 0 {
 		return string(base62Chars[0])
 	}
@@ -50,7 +50,7 @@ func bitConfusion(id int64) uint64 {
 // EncodeSnowflake 将 50 位混淆值编码为 10 位 Base62。
 //
 // EncodeSnowflake encodes a 50-bit confusion value to a 10-bit Base62 string.
-func EncodeSnowflake(id int64) string {
+func encodeSnowflake(id int64) string {
 	masked := bitConfusion(id)
 	const base = 62
 	const length = 10
@@ -74,8 +74,8 @@ func EncodeSnowflake(id int64) string {
 // CreateShortURL 集成 Snowflake 和 Base62 编码，生成短链。
 //
 // CreateShortURL integrates Snowflake and Base62 encoding to generate a short URL.
-func CreateShortURL() (string, error) {
-	sf, err := NewSnowflake(0, 0)
+func createShortURL() (string, error) {
+	sf, err := newSnowflake(0, 0)
 	if err != nil {
 		return "", err
 	}
@@ -83,5 +83,5 @@ func CreateShortURL() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return EncodeSnowflake(id), nil
+	return encodeSnowflake(id), nil
 }

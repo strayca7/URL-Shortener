@@ -16,21 +16,21 @@ var MysqlDB *gorm.DB
 
 // User表结构
 type User struct {
-    gorm.Model
-    UserID       string    `gorm:"type:varchar(36);uniqueIndex;not null"` // UUID格式
-    Email        string    `gorm:"type:varchar(255);uniqueIndex;not null"`
-    PasswordHash string    `gorm:"type:varchar(255);not null"` // 存储bcrypt哈希
-    ShortURLs    []ShortURL `gorm:"foreignKey:UserID;references:UserID;onDelete:CASCADE"`
+	gorm.Model
+	UserID       string     `gorm:"type:varchar(36);uniqueIndex;not null"` // UUID格式
+	Email        string     `gorm:"type:varchar(255);uniqueIndex;not null"`
+	PasswordHash string     `gorm:"type:varchar(255);not null"` // 存储bcrypt哈希
+	ShortURLs    []ShortURL `gorm:"foreignKey:UserID;references:UserID;onDelete:CASCADE"`
 }
 
 // 短链表结构
 type ShortURL struct {
-    gorm.Model
-    OriginalURL  string    `gorm:"type:text;not null"`
-    ShortCode    string    `gorm:"type:varchar(10);uniqueIndex;not null"` // 短码建议6-10位
-    ExpireAt     time.Time `gorm:"index"`                                  // 过期时间索引
-    AccessCount  int       `gorm:"default:0"`
-    UserID       string    `gorm:"type:varchar(36);index;not null"`       // 外键关联
+	gorm.Model
+	OriginalURL string    `gorm:"type:text;not null"`
+	ShortCode   string    `gorm:"type:varchar(10);uniqueIndex;not null"` // 短码建议6-10位
+	ExpireAt    time.Time `gorm:"index"`                                 // 过期时间索引
+	AccessCount int       `gorm:"default:0"`
+	UserID      string    `gorm:"type:varchar(36);index;not null"` // 外键关联
 }
 
 func InitMysqlDB() {

@@ -7,7 +7,7 @@ import (
 )
 
 func TestNewsnowflake(t *testing.T) {
-	sf, _ := NewSnowflake(1, 1)
+	sf, _ := newSnowflake(1, 1)
 	t.Log("TestNewSnowflake with goroutine")
 	var wg sync.WaitGroup
 	for i := range 10 {
@@ -20,7 +20,7 @@ func TestNewsnowflake(t *testing.T) {
 				t.Errorf("Generate error: %v", id)
 			}
 			fmt.Printf("Snowflake ID: %d\t", id)
-			shortcode := EncodeSnowflake(id)
+			shortcode := encodeSnowflake(id)
 			fmt.Printf("Short Code: %s\n", shortcode)
 		}()
 	}
