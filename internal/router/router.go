@@ -4,6 +4,10 @@ import (
 	"url-shortener/internal/handler"
 	"url-shortener/internal/pkg/controller"
 	"url-shortener/internal/pkg/middleware"
+	"url-shortener/internal/pkg/util"
+
+	"github.com/didip/tollbooth/v7"
+	"github.com/didip/tollbooth_gin"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,17 +19,21 @@ func Router() {
 			"message": "pong",
 		})
 	})
-	
-	r.POST("/login", controller.Login)
-	authGroup := r.Group("/api")
-    authGroup.Use(middleware.JwtAuth())
-    {
-        authGroup.GET("/profile", func(c *gin.Context) {
-            userID, _ := c.Get("user_id")
-            c.JSON(200, gin.H{"user_id": userID})
-        })
-    }
 
-	r.POST("/shorten", handler.ShorterCodeCreaterHandler)
+	public := r.Group("")
+	{
+		public.POST("/register", controller.Register)
+		limiter := tollbooth.NewLimiter(5, nil) // 每秒5次请求
+		public.POST("/login", tollbooth_gin.LimitHandler(limiter), controller.Login)
+	}
+
+	authGroup := r.Group("/auth")
+	authGroup.Use(middleware.JwtAuth())
+	{
+		authGroup.POST("/refresh", util.RefreshTokenHandler)
+		authGroup.POST("/shorten", handler.CreateShorterCodeHandler)
+		// authGroup.POST("/reflash", util.RefreshToken)
+	}
+
 	r.Run(":8080")
 }
