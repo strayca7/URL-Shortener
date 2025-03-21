@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 	"url-shortener/internal/pkg/cache"
 
@@ -17,19 +18,15 @@ import (
 )
 
 func init() {
-	viper.SetConfigName("config") // 配置文件名 (不带扩展名)
-	viper.SetConfigType("yaml")  // 配置文件类型
-	viper.AddConfigPath("../../config")     // 配置文件路径
+	viper.SetConfigName("config")       // 配置文件名 (不带扩展名)
+	viper.SetConfigType("yaml")         // 配置文件类型
+	viper.AddConfigPath("../../config") // 配置文件路径
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("Error reading config file, %s", err)
 	}
 }
 
-// td: 配置密钥
-var SecretKey = []byte("your-256-bit-secret") // 从配置读取
-
-// 内嵌标准声明 + 自定义业务字段
 type Claims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
@@ -37,8 +34,8 @@ type Claims struct {
 }
 
 const (
-	AccessTokenExpire  = 2 * time.Hour       // Access Token 有效期
-	RefreshTokenExpire = 30 * 24 * time.Hour // Refresh Token 有效期
+	AccessTokenExpire  = 2 * time.Hour
+	RefreshTokenExpire = 30 * 24 * time.Hour
 )
 
 func GenerateTokens(userID string, email string) (accessToken string, refreshToken string, err error) {
@@ -48,10 +45,10 @@ func GenerateTokens(userID string, email string) (accessToken string, refreshTok
 		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenExpire)),
-			Issuer:    "your-app-name",
+			Issuer:    "shortener",
 		},
 	}
-	accessToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString([]byte(SecretKey))
+	accessToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString([]byte(viper.GetString("jwt_secret")))
 	if err != nil {
 		log.Println("Error generating access token:", err)
 		return "", "", err
@@ -60,9 +57,10 @@ func GenerateTokens(userID string, email string) (accessToken string, refreshTok
 	// Refresh Token（仅包含必要信息）
 	refreshClaims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(RefreshTokenExpire)),
-		ID:        uuid.NewString(), // 唯一标识防重放
+		ID:        uuid.NewString(),
+		Subject:   userID,
 	}
-	refreshToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString([]byte(SecretKey))
+	refreshToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString([]byte(viper.GetString("jwt_secret")))
 	if err != nil {
 		log.Println("Error generating refresh token:", err)
 		return "", "", err
@@ -73,6 +71,7 @@ func GenerateTokens(userID string, email string) (accessToken string, refreshTok
 
 // ParseAccessToken 解析并验证 AccessToken
 func ParseAccessToken(tokenString string) (*Claims, error) {
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		&Claims{},
@@ -81,12 +80,11 @@ func ParseAccessToken(tokenString string) (*Claims, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return []byte(viper.GetString("jwt.secret")), nil
+			return []byte(viper.GetString("jwt_secret")), nil
 		},
 	)
 
 	if err != nil {
-		// 区分过期错误与其他错误
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			return nil, errors.New("access token expired")
 		}
@@ -109,7 +107,7 @@ func ParseRefreshToken(tokenString string) (*jwt.RegisteredClaims, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return []byte(viper.GetString("jwt.secret")), nil
+			return []byte(viper.GetString("jwt_secret")), nil
 		},
 	)
 
@@ -169,4 +167,14 @@ func RefreshTokenHandler(c *gin.Context) {
 		"access_token":  newAccessToken,
 		"refresh_token": newRefreshToken,
 	})
+}
+
+// LoginResponse 用于后端解析登录响应
+type LoginResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	User         struct {
+		UserID string `json:"user_id"`
+		Email  string `json:"email"`
+	} `json:"user"`
 }

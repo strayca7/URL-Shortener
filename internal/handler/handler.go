@@ -11,10 +11,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ShorterCodeCreaterHandler 短链生成接口，POST /shorten。
+
+// CreateShorterCodeHandler 短链生成接口，POST /shorten。
 //
-// ShorterCodeCreaterHandler API for creating short URL, POST /shorten.
-func ShorterCodeCreaterHandler(c *gin.Context) {
+// CreateShorterCodeHandler API for creating short URL, POST /shorten.
+func CreateShorterCodeHandler(c *gin.Context) {
 	service.ShortCodeCreater(c)
 }
 

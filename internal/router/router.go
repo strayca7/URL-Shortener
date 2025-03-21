@@ -32,7 +32,6 @@ func Router() {
 	{
 		authGroup.POST("/refresh", util.RefreshTokenHandler)
 		authGroup.POST("/shorten", handler.CreateShorterCodeHandler)
-		// authGroup.POST("/reflash", util.RefreshToken)
 	}
 
 	r.Run(":8080")
