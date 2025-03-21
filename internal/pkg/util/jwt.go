@@ -17,16 +17,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func init() {
-	viper.SetConfigName("config")       // 配置文件名 (不带扩展名)
-	viper.SetConfigType("yaml")         // 配置文件类型
-	viper.AddConfigPath("../../config") // 配置文件路径
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Error reading config file, %s", err)
-	}
-}
-
 type Claims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`

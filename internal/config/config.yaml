@@ -1,1 +1,23 @@
 jwt_secret: "secret"
+
+mysql:
+  user: "root"
+  password: "famcat777"
+  host: "localhost"
+  port: "3306"
+  database: "miniurl"
+
+pgsql:
+  host: "localhost"
+  port: "5432"
+  user: "postgres"
+  password: "your_password"
+  database: "your_database"
+  sslmode: "disable"
+  timezone: "Asia/Shanghai"
+
+redis:
+  host: "localhost"
+  prot: "6379"
+  password: "your_password"
+  db: "0"

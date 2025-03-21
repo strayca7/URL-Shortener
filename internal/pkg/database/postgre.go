@@ -3,10 +3,9 @@ package database
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
-	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -14,17 +13,14 @@ import (
 var PgDB *gorm.DB
 
 func InitPgDB() {
-	if err := godotenv.Load("../.env"); err != nil {
-		log.Fatalf("Failed to load .env file: %v", err)
-	}
 	var (
-		pgdbHost     = os.Getenv("PGSQL_HOST")
-		pgdbUser     = os.Getenv("PGSQL_USER")
-		pgdbPassword = os.Getenv("PGSQL_PASSWORD")
-		pgdbName     = os.Getenv("PGSQL_DBNAME")
-		pgdbPort     = os.Getenv("PGSQL_PORT")
-		pgdbSSLMode  = os.Getenv("PGSQL_SSLMODE")
-		pgdbTimeZone = os.Getenv("PGSQL_TIMEZONE")
+		pgdbHost     = viper.GetString("pgsql.host")
+		pgdbUser     = viper.GetString("pgsql.user")
+		pgdbPassword = viper.GetString("pgsql.password")
+		pgdbName     = viper.GetString("pgsql.database")
+		pgdbPort     = viper.GetString("pgsql.port")
+		pgdbSSLMode  = viper.GetString("pgsql.sslmode")
+		pgdbTimeZone = viper.GetString("pgsql.timezone")
 	)
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
 		pgdbHost, pgdbUser, pgdbPassword, pgdbName, pgdbPort, pgdbSSLMode, pgdbTimeZone)

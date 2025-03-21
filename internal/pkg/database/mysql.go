@@ -1,13 +1,14 @@
 package database
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
+	"gorm.io/datatypes"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -26,23 +27,21 @@ type User struct {
 // 短链表结构
 type ShortURL struct {
 	gorm.Model
-	OriginalURL string    `gorm:"type:text;not null"`
-	ShortCode   string    `gorm:"type:varchar(10);uniqueIndex;not null"` // 短码建议6-10位
-	ExpireAt    time.Time `gorm:"index"`                                 // 过期时间索引
-	AccessCount int       `gorm:"default:0"`
-	UserID      string    `gorm:"type:varchar(36);index;not null"` // 外键关联
+	OriginalURL string         `gorm:"type:text;not null"`
+	ShortCode   string         `gorm:"type:varchar(10);uniqueIndex;not null"` // 短码建议6-10位
+	ExpireAt    time.Time      `gorm:"index"`                                 // 过期时间索引
+	AccessCount int            `gorm:"default:0"`
+	ClientIPs   datatypes.JSON `gorm:"type:json"`
+	UserID      string         `gorm:"type:varchar(36);index;not null"` // 外键关联
 }
 
 func InitMysqlDB() {
-	if err := godotenv.Load("../.env"); err != nil {
-		log.Fatalf("Failed to load .env file: %v", err)
-	}
 	var (
-		mydbUser     = os.Getenv("MYSQL_USER")
-		mydbPassword = os.Getenv("MYSQL_PASSWORD")
-		mydbHost     = os.Getenv("MYSQL_HOST")
-		mydbPort     = os.Getenv("MYSQL_PORT")
-		mydbName     = os.Getenv("MYSQL_DATABASE")
+		mydbUser     = viper.GetString("mysql.user")
+		mydbPassword = viper.GetString("mysql.password")
+		mydbHost     = viper.GetString("mysql.host")
+		mydbPort     = viper.GetString("mysql.port")
+		mydbName     = viper.GetString("mysql.database")
 	)
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", mydbUser, mydbPassword, mydbHost, mydbPort, mydbName)
 	var open_err error
@@ -90,9 +89,59 @@ func GetURL(shortCode string) (string, error) {
 	return shortURL.OriginalURL, nil
 }
 func SaveURL(shortCode string, longURL string, c *gin.Context) error {
-	return MysqlDB.Create(&ShortURL{OriginalURL: longURL, ShortCode: shortCode}).Error
+    clientIP := c.ClientIP()
+    var jsonData []byte
+    if clientIP != "" {
+        jsonData, _ = json.Marshal([]string{clientIP})
+    } else {
+        jsonData, _ = json.Marshal([]string{})
+    }
+    return MysqlDB.Create(&ShortURL{OriginalURL: longURL, ShortCode: shortCode, ClientIPs: datatypes.JSON(jsonData)}).Error
 }
 
-func LogAccess(shortCode string, clientIP string) {
-	MysqlDB.Model(&ShortURL{}).Where("short_code = ?", shortCode).Update("access_count", gorm.Expr("access_count + 1"))
+// LogAccess 记录访问信息
+func LogAccess(shortCode string, clientIP string) error {
+    var shortURL ShortURL
+
+    // 查询短链记录
+    if err := MysqlDB.Where("short_code = ?", shortCode).First(&shortURL).Error; err != nil {
+        return err
+    }
+
+    var existingIPs []string
+    // 解析 JSON 数据到字符串切片
+    if len(shortURL.ClientIPs) > 0 {
+        if err := json.Unmarshal(shortURL.ClientIPs, &existingIPs); err != nil {
+            log.Printf("JSON 解析失败: %v\n", err)
+            existingIPs = []string{} // 初始化为空数组
+        }
+    }
+
+    // 检查 IP 是否已存在，避免重复记录
+    for _, ip := range existingIPs {
+        if ip == clientIP {
+            // 如果 IP 已存在，只更新访问计数
+            return MysqlDB.Model(&ShortURL{}).Where("short_code = ?", shortCode).Update("access_count", gorm.Expr("access_count + 1")).Error
+        }
+    }
+
+    // 跳过空的 clientIP
+    if clientIP == "" {
+        log.Println("空的 clientIP，跳过记录")
+        return nil
+    }
+
+    // 添加新的 IP 地址
+    existingIPs = append(existingIPs, clientIP)
+    updatedIPs, err := json.Marshal(existingIPs)
+    if err != nil {
+        log.Printf("JSON 序列化失败: %v\n", err)
+        return err
+    }
+
+    // 更新访问计数和 IP 列表
+    return MysqlDB.Model(&ShortURL{}).Where("short_code = ?", shortCode).Updates(map[string]interface{}{
+        "access_count": gorm.Expr("access_count + 1"),
+        "client_ips":    updatedIPs,
+    }).Error
 }
