@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"log"
 	"net/http"
 	"url-shortener/internal/pkg/util"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // JwtAuth 中间件，用于 JWT 认证集成自动续期。
@@ -51,7 +51,7 @@ func JwtAuth() gin.HandlerFunc {
 		}
 
 		// 如果 Access Token 有效，将用户信息存入上下文
-		log.Println("vaild Access Token")
+		log.Info().Msg("Vaild access token")
 		c.Set("user_id", claims.UserID)
 		c.Set("email", claims.Email)
 		c.Next()

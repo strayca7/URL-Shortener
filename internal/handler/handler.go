@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 	"sync"
 
@@ -9,6 +8,7 @@ import (
 	"url-shortener/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // CreateShorterCodeHandler 短链生成接口，POST /shorten。
@@ -28,24 +28,24 @@ func RedirectHandler(c *gin.Context) {
 
     originalURL, err := database.GetURL(shortCode)
     if err != nil {
-        log.Printf("Failed to get original URL for shortCode %s: %v\n", shortCode, err)
+		log.Err(err).Str("shortCode", shortCode).Msg("Failed to get original URL for shortCode ")
         c.JSON(http.StatusNotFound, gin.H{"error": "URL not found"})
         return
     }
 
     clientIP := c.ClientIP()
-	log.Println("用户 IP 为", clientIP)
+	log.Info().Str("IP", clientIP).Msg("用户IP")
 
 	var wg sync.WaitGroup
 	wg.Add(1)
     go func() {
 		defer wg.Done()
         if err := database.LogAccess(shortCode, clientIP); err != nil {
-            log.Printf("Failed to log access for shortCode %s: %v\n", shortCode, err)
+			log.Err(err).Str("shortCode", shortCode).Msg("Failed to log access for shortCode ")
         }
     }()
 	wg.Wait()
 
-    log.Printf("Redirecting shortCode %s to original URL: %s\n", shortCode, originalURL)
+	log.Info().Str("shortCode", shortCode).Str("original URL", originalURL).Msg("Redirecting shortCode ")
     c.Redirect(http.StatusFound, originalURL)
 }

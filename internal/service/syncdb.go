@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 集成 MySQL,Redis 存储URL
+// 未启用，集成 MySQL,Redis 存储URL
 func SaveURL(url string, shortCode string, c *gin.Context) error {
 	if err := database.SaveURL(shortCode, url, c); err != nil {
 		return err

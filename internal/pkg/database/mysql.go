@@ -3,11 +3,11 @@ package database
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"github.com/rs/zerolog/log"
 	"gorm.io/datatypes"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -47,12 +47,12 @@ func InitMysqlDB() {
 	var open_err error
 	MysqlDB, open_err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if open_err != nil {
-		log.Fatal(open_err)
+		log.Fatal().Err(open_err).Msg("MySQL connection error")
 	}
 
 	sqlDB, err := MysqlDB.DB()
 	if err != nil {
-		log.Fatalf("Failed to get underlying *sql.DB: %v", err)
+		log.Err(err).Msg("Failed to get underlying *sql.DB")
 	}
 
 	sqlDB.SetMaxIdleConns(10)
@@ -60,24 +60,24 @@ func InitMysqlDB() {
 	sqlDB.SetConnMaxLifetime(3 * time.Hour)
 
 	if err := sqlDB.Ping(); err != nil {
-		log.Fatalf("Failed to ping MySQL: %v", err)
+		log.Err(err).Msg("Failed to ping MySQL")
 	}
-	log.Println("MySQL connected successfully!")
+	log.Debug().Msg("Successfully connected to MySQL")
 
 	err = MysqlDB.AutoMigrate(&User{}, &ShortURL{})
 	if err != nil {
-		panic("迁移失败: " + err.Error())
+		log.Err(err).Msg("Failed to migrate MySQL")
 	}
 }
 
 func CloseMysqlDB() {
 	sqlDB, err := MysqlDB.DB()
 	if err != nil {
-		log.Printf("Failed to get underlying *sql.DB: %v\n", err)
+		log.Err(err).Msg("Failed to get underlying *sql.DB")
 		return
 	}
 	sqlDB.Close()
-	log.Println("MySQL connection closed.")
+	log.Debug().Msg("MySQL connection closed")
 }
 
 func GetURL(shortCode string) (string, error) {
@@ -112,7 +112,7 @@ func LogAccess(shortCode string, clientIP string) error {
     // 解析 JSON 数据到字符串切片
     if len(shortURL.ClientIPs) > 0 {
         if err := json.Unmarshal(shortURL.ClientIPs, &existingIPs); err != nil {
-            log.Printf("JSON 解析失败: %v\n", err)
+			log.Err(err).Msg("Failed to unmarshal existingIPs")
             existingIPs = []string{} // 初始化为空数组
         }
     }
@@ -127,7 +127,7 @@ func LogAccess(shortCode string, clientIP string) error {
 
     // 跳过空的 clientIP
     if clientIP == "" {
-        log.Println("空的 clientIP，跳过记录")
+		log.Debug().Msg("empty clientIP, skip record")
         return nil
     }
 
@@ -135,7 +135,7 @@ func LogAccess(shortCode string, clientIP string) error {
     existingIPs = append(existingIPs, clientIP)
     updatedIPs, err := json.Marshal(existingIPs)
     if err != nil {
-        log.Printf("JSON 序列化失败: %v\n", err)
+		log.Err(err).Msg("Failed to marshal updatedIPs")
         return err
     }
 

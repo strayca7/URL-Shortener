@@ -60,10 +60,8 @@ func (s *snowflake) Generate() (int64, error) {
 	}
 
 	if current == s.lastTimestamp {
-		// log.Println("时间相同，毫秒内序列号+1")
 		s.sequence = (s.sequence + 1) & maxSequence
 		if s.sequence == 0 {
-			// 当前毫秒内序列号用尽，等待下一毫秒
 			current = s.waitNextMillis(current)
 		}
 	} else {
@@ -72,7 +70,6 @@ func (s *snowflake) Generate() (int64, error) {
 
 	s.lastTimestamp = current
 
-	// 组合各部分生成 ID
 	id := (current-epoch)<<timestampShift |
 		(s.datacenterID << datacenterShift) |
 		(s.machineID << machineShift) |

@@ -4,14 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 	"url-shortener/internal/pkg/cache"
 
 	"github.com/spf13/viper"
-
+	"github.com/rs/zerolog/log"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -40,7 +39,7 @@ func GenerateTokens(userID string, email string) (accessToken string, refreshTok
 	}
 	accessToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString([]byte(viper.GetString("jwt_secret")))
 	if err != nil {
-		log.Println("Error generating access token:", err)
+		log.Err(err).Msg("Error generating access token")
 		return "", "", err
 	}
 
@@ -52,7 +51,7 @@ func GenerateTokens(userID string, email string) (accessToken string, refreshTok
 	}
 	refreshToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString([]byte(viper.GetString("jwt_secret")))
 	if err != nil {
-		log.Println("Error generating refresh token:", err)
+		log.Err(err).Msg("Error generating refresh token")
 		return "", "", err
 	}
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -31,17 +32,20 @@ type LoginRequest struct {
 func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "parameters format error"})
+		log.Err(err).Msg("Request body is invalid")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "request body is invalid"})
 		return
 	}
 
 	var user database.User
 	if err := database.MysqlDB.Where("email = ?", req.Email).First(&user).Error; err == gorm.ErrRecordNotFound {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email"})
+		log.Debug().Err(err).Msg("Email not found")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "email not found"})
 		return
 	}
 
 	if !util.ComparePassword(user.PasswordHash, req.Password) {
+		log.Debug().Msg("Wrong password")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "wrong password"})
 		return
 	}

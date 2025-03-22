@@ -2,10 +2,10 @@ package database
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/spf13/viper"
+	"github.com/rs/zerolog/log"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -27,12 +27,12 @@ func InitPgDB() {
 	var err error
 	PgDB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatal().Err(err).Msg("Failed to connect to PostgreSQL")
 	}
 
 	sqlDB, err := PgDB.DB()
 	if err != nil {
-		log.Fatalf("Failed to get underlying *sql.DB: %v", err)
+		log.Err(err).Msg("Failed to get underlying *sql.DB")
 	}
 
 	sqlDB.SetMaxIdleConns(10)               // 空闲连接池大小
@@ -40,9 +40,9 @@ func InitPgDB() {
 	sqlDB.SetConnMaxLifetime(3 * time.Hour) // 连接最大存活时间
 
 	if err := sqlDB.Ping(); err != nil {
-		log.Fatalf("Failed to ping PostgreSQL: %v", err)
+		log.Err(err).Msg("Failed to ping PostgreSQL")
 	}
-	log.Println("PostgreSQL connected successfully!")
+	log.Debug().Msg("Successfully connected to PostgreSQL")
 }
 
 func ClosePgDB() {
@@ -52,5 +52,5 @@ func ClosePgDB() {
 		return
 	}
 	sqlDB.Close()
-	log.Println("MySQL connection closed.")
+	log.Debug().Msg("PostgreSQL connection closed")
 }

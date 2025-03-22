@@ -4,14 +4,12 @@
 package service
 
 import (
-	"fmt"
-	"log"
 	"net/http"
 	"time"
-	"url-shortener/internal/config"
 	"url-shortener/internal/pkg/database"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 // ShorterCodeCreater 短链创建方法，集成 Snowflake、Base62，并存储到数据库。
@@ -33,7 +31,7 @@ func ShortCodeCreater(c *gin.Context) {
 		LongURL string `json:"long_url"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Println("error binding json:", err)
+		log.Err(err).Msg("Invalid long URL request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
@@ -41,19 +39,19 @@ func ShortCodeCreater(c *gin.Context) {
 	// 生成短链（Base62 编码），Snowflake 算法确保唯一性，不用去重
 	shortCode, err := createShortURL()
 	if err != nil {
-		log.Println("error creating short URL:", err)
+		log.Err(err).Msg("Failed to create short URL")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create short URL"})
 		return
 	}
 
 	userIDStr, ok := userID.(string)
 	if !ok {
-		log.Println("error asserting userID to string")
+		log.Info().Msg("error asserting userID to string")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 	if err := database.MysqlDB.Create(&database.ShortURL{UserID: userIDStr, ShortCode: shortCode, OriginalURL: req.LongURL, ExpireAt: time.Now().Add(90 * 24 * time.Hour)}).Error; err != nil {
-		log.Println("error creating short URL:", err)
+		log.Err(err).Msg("Failed to create short URL")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "save failed"})
 		return
 	}
@@ -64,5 +62,5 @@ func ShortCodeCreater(c *gin.Context) {
 	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "cache failed"})
 	// }
 
-	c.JSON(http.StatusOK, gin.H{"short_url": fmt.Sprintf("%s/%s", config.Host(), shortCode)})
+	c.JSON(http.StatusOK, gin.H{"short_url": shortCode})
 }

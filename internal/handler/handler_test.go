@@ -7,20 +7,23 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
+	_ "url-shortener/internal/config"
 	"url-shortener/internal/pkg/controller"
 	"url-shortener/internal/pkg/database"
 	"url-shortener/internal/pkg/middleware"
 	"url-shortener/internal/pkg/util"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRedirect(t *testing.T) {
 	pwd, _ := os.Getwd()
-	fmt.Println("当前工作目录:", pwd)
+	
+	log.Info().Msg("当前工作目录: "+pwd)
+
 	database.InitMysqlDB()
 	defer database.CloseMysqlDB()
 
@@ -38,7 +41,7 @@ func TestRedirect(t *testing.T) {
 	}
 
 	t.Run("Successful Registration", func(t *testing.T) {
-		body := `{"email": "redirection10@example.com", "password": "P@ssw0rd"}`
+		body := `{"email": "redirection13@example.com", "password": "P@ssw0rd"}`
 		req, _ := http.NewRequest("POST", "/register", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -48,11 +51,11 @@ func TestRedirect(t *testing.T) {
 		assert.Equal(t, http.StatusCreated, w.Code)
 		fmt.Println(w.Body.String())
 		assert.Contains(t, w.Body.String(), "user_id")
-		assert.Contains(t, w.Body.String(), "redirection10@example.com")
+		assert.Contains(t, w.Body.String(), "redirection13@example.com")
 	})
 
 	t.Run("Login and Redirect URL", func(t *testing.T) {
-		loginBody := `{"email": "redirection10@example.com", "password": "P@ssw0rd"}`
+		loginBody := `{"email": "redirection13@example.com", "password": "P@ssw0rd"}`
 		req, _ := http.NewRequest("POST", "/login", bytes.NewBufferString(loginBody))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -85,7 +88,6 @@ func TestRedirect(t *testing.T) {
 
 		var shortURL Code
 		json.Unmarshal(w.Body.Bytes(), &shortURL)
-		shortURL.ShortURL = strings.Split(shortURL.ShortURL, "/")[1]
 		redirectreq, _ := http.NewRequest("POST", "/auth/"+shortURL.ShortURL, nil)
 		redirectreq.Header.Set("Content-Type", "application/json")
 		redirectreq.Header.Set("Authorization", "Bearer "+loginResponse.AccessToken)

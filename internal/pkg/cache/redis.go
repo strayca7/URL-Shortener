@@ -2,10 +2,10 @@ package cache
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 )
 
 var RedisCli *redis.Client
@@ -24,18 +24,18 @@ func InitRedis() {
 	})
 
 	ctx := context.Background()
-	pong, err := RedisCli.Ping(ctx).Result()
+	_, err := RedisCli.Ping(ctx).Result()
 	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
+		log.Fatal().Err(err).Msg("Failed to connect to Redis")
 	}
-	log.Printf("Redis successfully connected: %s", pong)
+	log.Debug().Msg("Successfully connected to Redis")
 }
 
 func CloseRedis() {
 	if err := RedisCli.Close(); err != nil {
-		log.Fatalf("Failed to close Redis connection: %v", err)
+		log.Fatal().Err(err).Msg("Failed to close Redis connection")
 	}
-	log.Println("Redis connection closed.")
+	log.Debug().Msg("Redis connection closed")
 }
 
 func GetURL(shortCode string) (string, error) {
