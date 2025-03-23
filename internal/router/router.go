@@ -32,7 +32,7 @@ func Router() {
 	{
 		authGroup.POST("/refresh", util.RefreshTokenHandler)
 		authGroup.POST("/shorten", handler.CreateShorterCodeHandler)
-		authGroup.POST("/:code", handler.RedirectHandler)
+		authGroup.POST("/short/:code", handler.RedirectHandler)
 	}
 
 	r.Run(":8080")

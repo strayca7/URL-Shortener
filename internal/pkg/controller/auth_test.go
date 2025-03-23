@@ -86,7 +86,7 @@ func TestLogin(t *testing.T) {
 	authGroup := r.Group("/auth")
 	authGroup.Use(middleware.JwtAuth())
 	{
-		authGroup.POST("/short", handler.CreateShorterCodeHandler)
+		authGroup.POST("/shorten", handler.CreateShorterCodeHandler)
 	}
 
 	// 测试注册成功
@@ -124,7 +124,7 @@ func TestLogin(t *testing.T) {
 
 		// 准备创建短链的请求
 		shortURLBody := `{"long_url": "https://www.google.com"}`
-		authreq, _ := http.NewRequest("POST", "/auth/short", bytes.NewBufferString(shortURLBody))
+		authreq, _ := http.NewRequest("POST", "/auth/shorten", bytes.NewBufferString(shortURLBody))
 		authreq.Header.Set("Content-Type", "application/json")
 		authreq.Header.Set("Authorization", "Bearer "+loginResponse.AccessToken)
 		authreq.Header.Set("refresh_token", loginResponse.RefreshToken)

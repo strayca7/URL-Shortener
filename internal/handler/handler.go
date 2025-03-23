@@ -11,17 +11,28 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// CreateShorterCodeHandler 短链生成接口，POST /shorten。
+// CreateShorterCodeHandler 短链生成接口，POST /shorten。需要在 http header 加入 Authorization 和 refresh_token，并且在 http body 中发送 JSON。
 //
-// CreateShorterCodeHandler API for creating short URL, POST /shorten.
+// CreateShorterCodeHandler API for creating short URL, POST /shorten. Requires Authorization and refresh_token in the HTTP header, and JSON in the HTTP body.
+//
+// 发送 JSON 格式为：/ sendsend JSON format as follows:
+//
+//	{
+//	    "url": "https://www.example.com"
+//	}
 func CreateShorterCodeHandler(c *gin.Context) {
 	service.ShortCodeCreater(c)
 }
 
-// RedirectHandler 短链重定向处理函数
+// RedirectHandler 短链重定向处理函数。
+// 需要在 http header 加入 Authorization 和 refresh_token。
 //
-// RedirectHandler handles redirection from a short URL to the original URL,
-// logs the client's IP address, and increments the access count.
+// 发送 http 请求，例如： http://localhost:8080/short/abc123
+//
+// RedirectHandler handles redirection from a short URL to the original URL.
+// Requires Authorization and refresh_token in the HTTP header.
+//
+// send http request, for example: http://localhost:8080/short/abc123
 func RedirectHandler(c *gin.Context) {
 	shortCode := c.Param("code")
 

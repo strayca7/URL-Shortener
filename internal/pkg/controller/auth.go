@@ -17,9 +17,18 @@ type LoginRequest struct {
 }
 
 // Login 将 LoginRequest 对象解析为数据库中的用户对象，并生成 JWT。
-// Login parses the LoginRequest object into a user object in the database, and generates a JWT.
 //
-// 返回 Json 格式为： / return Json format as follows:
+// Login parses the LoginRequest object into a user object in the database,
+// and generates a JWT.
+//
+// 发送 JSON 格式为： / send JSON format as follows:
+//
+//	{
+//		"email":    "test@example.com",
+//		"password": "password123",
+//	}
+//
+// 返回 JSON 格式为： / return JSON format as follows:
 //
 //	{
 //		"access_token": accessToken,
@@ -70,9 +79,16 @@ type RegisterRequest struct {
 	Password string `json:"password" binding:"required,min=8,max=32"`
 }
 
-// Register 注册用户，生成数据库对象、UUID。
+// Register 注册用户，生成数据库对象、UUID。在 http body 以 JSON 格式发送邮箱和密码。
 //
-// Register registers user, generates database object and UUID.
+// Register registers user, generates database object and UUID. In http body, send email and password in JSON format.
+//
+// 发送 JSON 格式为： / send JSON format as follows:
+//
+//	{
+//		"email":    "test@example.com",
+//		"password": "password123",
+//	}
 func Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

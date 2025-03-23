@@ -70,7 +70,7 @@ func TestRedirect(t *testing.T) {
 		assert.NoError(t, err, "解析登录响应时不应出错")
 
 		shortURLBody := `{"long_url": "https://www.google.com"}`
-		authreq, _ := http.NewRequest("POST", "/auth/short", bytes.NewBufferString(shortURLBody))
+		authreq, _ := http.NewRequest("POST", "/auth/shorten", bytes.NewBufferString(shortURLBody))
 		authreq.Header.Set("Content-Type", "application/json")
 		authreq.Header.Set("Authorization", "Bearer "+loginResponse.AccessToken)
 		authreq.Header.Set("refresh_token", loginResponse.RefreshToken)
@@ -88,7 +88,7 @@ func TestRedirect(t *testing.T) {
 
 		var shortURL Code
 		json.Unmarshal(w.Body.Bytes(), &shortURL)
-		redirectreq, _ := http.NewRequest("POST", "/auth/"+shortURL.ShortURL, nil)
+		redirectreq, _ := http.NewRequest("POST", "/auth/short/"+shortURL.ShortURL, nil)
 		redirectreq.Header.Set("Content-Type", "application/json")
 		redirectreq.Header.Set("Authorization", "Bearer "+loginResponse.AccessToken)
 		redirectreq.Header.Set("refresh_token", loginResponse.RefreshToken)

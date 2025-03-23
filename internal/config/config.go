@@ -10,10 +10,10 @@ import (
 )
 
 func init() {
-	// 注意运行时文件目录，确保每次启动都从根目录运行
-	if err := os.Chdir("../.."); err != nil {
-		panic(err)
-	}
+	// // 注意运行时文件目录，确保每次启动都从根目录运行
+	// if err := os.Chdir("./"); err != nil {
+	// 	panic(err)
+	// }
 
 	initLogger()
 	initViper()
