@@ -14,14 +14,14 @@ func init() {
 	if err := os.Chdir("../.."); err != nil {
 		panic(err)
 	}
-	
+
 	initLogger()
 	initViper()
 
 	log.Debug().Msg("Init finish")
 }
 
-func initViper(){
+func initViper() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./internal/config")
@@ -32,7 +32,7 @@ func initViper(){
 	log.Debug().Msg("Init viper")
 }
 
-func initLogger(){
+func initLogger() {
 	consoleWriter := zerolog.ConsoleWriter{
 		Out:        os.Stdout,
 		TimeFormat: "2006-01-02 15:04:05",

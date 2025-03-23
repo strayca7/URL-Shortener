@@ -73,69 +73,68 @@ func TestRegister(t *testing.T) {
 	})
 }
 
-
 func TestLogin(t *testing.T) {
-    database.InitMysqlDB()
-    defer database.CloseMysqlDB()
+	database.InitMysqlDB()
+	defer database.CloseMysqlDB()
 
-    gin.SetMode(gin.TestMode)
+	gin.SetMode(gin.TestMode)
 
-    r := gin.Default()
-    r.POST("/register", Register)
-    r.POST("/login", Login)
+	r := gin.Default()
+	r.POST("/register", Register)
+	r.POST("/login", Login)
 
-    authGroup := r.Group("/auth")
-    authGroup.Use(middleware.JwtAuth())
-    {
-        authGroup.POST("/short", handler.CreateShorterCodeHandler)
-    }
+	authGroup := r.Group("/auth")
+	authGroup.Use(middleware.JwtAuth())
+	{
+		authGroup.POST("/short", handler.CreateShorterCodeHandler)
+	}
 
-    // 测试注册成功
-    t.Run("Successful Registration", func(t *testing.T) {
-        body := `{"email": "newuser3@example.com", "password": "P@ssw0rd"}`
-        req, _ := http.NewRequest("POST", "/register", bytes.NewBufferString(body))
-        req.Header.Set("Content-Type", "application/json")
-        w := httptest.NewRecorder()
+	// 测试注册成功
+	t.Run("Successful Registration", func(t *testing.T) {
+		body := `{"email": "newuser3@example.com", "password": "P@ssw0rd"}`
+		req, _ := http.NewRequest("POST", "/register", bytes.NewBufferString(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
 
-        r.ServeHTTP(w, req)
+		r.ServeHTTP(w, req)
 
-        assert.Equal(t, http.StatusCreated, w.Code)
-        fmt.Println(w.Body.String())
-        assert.Contains(t, w.Body.String(), "user_id")
-        assert.Contains(t, w.Body.String(), "newuser3@example.com")
-    })
+		assert.Equal(t, http.StatusCreated, w.Code)
+		fmt.Println(w.Body.String())
+		assert.Contains(t, w.Body.String(), "user_id")
+		assert.Contains(t, w.Body.String(), "newuser3@example.com")
+	})
 
-    // 测试登录并发送 Token 和 long_url
-    t.Run("Login and Create Short URL", func(t *testing.T) {
-        // 登录请求
-        loginBody := `{"email": "newuser3@example.com", "password": "P@ssw0rd"}`
-        req, _ := http.NewRequest("POST", "/login", bytes.NewBufferString(loginBody))
-        req.Header.Set("Content-Type", "application/json")
-        w := httptest.NewRecorder()
+	// 测试登录并发送 Token 和 long_url
+	t.Run("Login and Create Short URL", func(t *testing.T) {
+		// 登录请求
+		loginBody := `{"email": "newuser3@example.com", "password": "P@ssw0rd"}`
+		req, _ := http.NewRequest("POST", "/login", bytes.NewBufferString(loginBody))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
 
-        r.ServeHTTP(w, req)
+		r.ServeHTTP(w, req)
 
-        fmt.Println("Login Response:", w.Body.String())
-        assert.Equal(t, http.StatusOK, w.Code)
+		fmt.Println("Login Response:", w.Body.String())
+		assert.Equal(t, http.StatusOK, w.Code)
 
-        // 解析登录响应，提取 Token
-        var loginResponse util.LoginResponse
-        err := json.Unmarshal(w.Body.Bytes(), &loginResponse)
-        assert.NoError(t, err, "解析登录响应时不应出错")
+		// 解析登录响应，提取 Token
+		var loginResponse util.LoginResponse
+		err := json.Unmarshal(w.Body.Bytes(), &loginResponse)
+		assert.NoError(t, err, "解析登录响应时不应出错")
 
-        // 准备创建短链的请求
-        shortURLBody := `{"long_url": "https://www.google.com"}`
-        authreq, _ := http.NewRequest("POST", "/auth/short", bytes.NewBufferString(shortURLBody))
-        authreq.Header.Set("Content-Type", "application/json")
-        authreq.Header.Set("Authorization", "Bearer "+loginResponse.AccessToken)
-        authreq.Header.Set("refresh_token", loginResponse.RefreshToken)
+		// 准备创建短链的请求
+		shortURLBody := `{"long_url": "https://www.google.com"}`
+		authreq, _ := http.NewRequest("POST", "/auth/short", bytes.NewBufferString(shortURLBody))
+		authreq.Header.Set("Content-Type", "application/json")
+		authreq.Header.Set("Authorization", "Bearer "+loginResponse.AccessToken)
+		authreq.Header.Set("refresh_token", loginResponse.RefreshToken)
 
-        w = httptest.NewRecorder()
-        r.ServeHTTP(w, authreq)
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, authreq)
 
-        // 验证响应
-        fmt.Println("Short URL Response:", w.Body.String())
-        assert.Equal(t, http.StatusOK, w.Code)
-        assert.Contains(t, w.Body.String(), "short_url")
-    })
+		// 验证响应
+		fmt.Println("Short URL Response:", w.Body.String())
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "short_url")
+	})
 }

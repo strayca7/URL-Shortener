@@ -9,11 +9,11 @@ import (
 	"time"
 	"url-shortener/internal/pkg/cache"
 
-	"github.com/spf13/viper"
-	"github.com/rs/zerolog/log"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 )
 
 type Claims struct {

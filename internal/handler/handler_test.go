@@ -21,8 +21,8 @@ import (
 
 func TestRedirect(t *testing.T) {
 	pwd, _ := os.Getwd()
-	
-	log.Info().Msg("当前工作目录: "+pwd)
+
+	log.Info().Msg("当前工作目录: " + pwd)
 
 	database.InitMysqlDB()
 	defer database.CloseMysqlDB()
@@ -93,7 +93,7 @@ func TestRedirect(t *testing.T) {
 		redirectreq.Header.Set("Authorization", "Bearer "+loginResponse.AccessToken)
 		redirectreq.Header.Set("refresh_token", loginResponse.RefreshToken)
 		redirectreq.RemoteAddr = "192.168.1.1:12345"
-		
+
 		w = httptest.NewRecorder()
 		r.ServeHTTP(w, redirectreq)
 		assert.Equal(t, http.StatusFound, w.Code)

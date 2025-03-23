@@ -18,17 +18,17 @@ type LoginRequest struct {
 
 // Login 将 LoginRequest 对象解析为数据库中的用户对象，并生成 JWT。
 // Login parses the LoginRequest object into a user object in the database, and generates a JWT.
-// 
-// 返回 Json 格式为： / return Json format as follows:
-// {
-// 	"access_token": accessToken,
-// 	"refresh_token": refreshToken,
-// 	"user": {
-// 		"user_id": user.UserID,
-// 		"email":   user.Email,
-// 	},
-// }
 //
+// 返回 Json 格式为： / return Json format as follows:
+//
+//	{
+//		"access_token": accessToken,
+//		"refresh_token": refreshToken,
+//		"user": {
+//			"user_id": user.UserID,
+//			"email":   user.Email,
+//		},
+//	}
 func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -56,7 +56,7 @@ func Login(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"access_token": accessToken,
+		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 		"user": gin.H{
 			"user_id": user.UserID,

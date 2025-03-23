@@ -24,7 +24,7 @@ func ShortCodeCreater(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// email := c.GetHeader("email")
 
 	var req struct {

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 	"gorm.io/datatypes"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -89,59 +89,59 @@ func GetURL(shortCode string) (string, error) {
 	return shortURL.OriginalURL, nil
 }
 func SaveURL(shortCode string, longURL string, c *gin.Context) error {
-    clientIP := c.ClientIP()
-    var jsonData []byte
-    if clientIP != "" {
-        jsonData, _ = json.Marshal([]string{clientIP})
-    } else {
-        jsonData, _ = json.Marshal([]string{})
-    }
-    return MysqlDB.Create(&ShortURL{OriginalURL: longURL, ShortCode: shortCode, ClientIPs: datatypes.JSON(jsonData)}).Error
+	clientIP := c.ClientIP()
+	var jsonData []byte
+	if clientIP != "" {
+		jsonData, _ = json.Marshal([]string{clientIP})
+	} else {
+		jsonData, _ = json.Marshal([]string{})
+	}
+	return MysqlDB.Create(&ShortURL{OriginalURL: longURL, ShortCode: shortCode, ClientIPs: datatypes.JSON(jsonData)}).Error
 }
 
 // LogAccess 记录访问信息
 func LogAccess(shortCode string, clientIP string) error {
-    var shortURL ShortURL
+	var shortURL ShortURL
 
-    // 查询短链记录
-    if err := MysqlDB.Where("short_code = ?", shortCode).First(&shortURL).Error; err != nil {
-        return err
-    }
+	// 查询短链记录
+	if err := MysqlDB.Where("short_code = ?", shortCode).First(&shortURL).Error; err != nil {
+		return err
+	}
 
-    var existingIPs []string
-    // 解析 JSON 数据到字符串切片
-    if len(shortURL.ClientIPs) > 0 {
-        if err := json.Unmarshal(shortURL.ClientIPs, &existingIPs); err != nil {
+	var existingIPs []string
+	// 解析 JSON 数据到字符串切片
+	if len(shortURL.ClientIPs) > 0 {
+		if err := json.Unmarshal(shortURL.ClientIPs, &existingIPs); err != nil {
 			log.Err(err).Msg("Failed to unmarshal existingIPs")
-            existingIPs = []string{} // 初始化为空数组
-        }
-    }
+			existingIPs = []string{} // 初始化为空数组
+		}
+	}
 
-    // 检查 IP 是否已存在，避免重复记录
-    for _, ip := range existingIPs {
-        if ip == clientIP {
-            // 如果 IP 已存在，只更新访问计数
-            return MysqlDB.Model(&ShortURL{}).Where("short_code = ?", shortCode).Update("access_count", gorm.Expr("access_count + 1")).Error
-        }
-    }
+	// 检查 IP 是否已存在，避免重复记录
+	for _, ip := range existingIPs {
+		if ip == clientIP {
+			// 如果 IP 已存在，只更新访问计数
+			return MysqlDB.Model(&ShortURL{}).Where("short_code = ?", shortCode).Update("access_count", gorm.Expr("access_count + 1")).Error
+		}
+	}
 
-    // 跳过空的 clientIP
-    if clientIP == "" {
+	// 跳过空的 clientIP
+	if clientIP == "" {
 		log.Debug().Msg("empty clientIP, skip record")
-        return nil
-    }
+		return nil
+	}
 
-    // 添加新的 IP 地址
-    existingIPs = append(existingIPs, clientIP)
-    updatedIPs, err := json.Marshal(existingIPs)
-    if err != nil {
+	// 添加新的 IP 地址
+	existingIPs = append(existingIPs, clientIP)
+	updatedIPs, err := json.Marshal(existingIPs)
+	if err != nil {
 		log.Err(err).Msg("Failed to marshal updatedIPs")
-        return err
-    }
+		return err
+	}
 
-    // 更新访问计数和 IP 列表
-    return MysqlDB.Model(&ShortURL{}).Where("short_code = ?", shortCode).Updates(map[string]interface{}{
-        "access_count": gorm.Expr("access_count + 1"),
-        "client_ips":    updatedIPs,
-    }).Error
+	// 更新访问计数和 IP 列表
+	return MysqlDB.Model(&ShortURL{}).Where("short_code = ?", shortCode).Updates(map[string]interface{}{
+		"access_count": gorm.Expr("access_count + 1"),
+		"client_ips":   updatedIPs,
+	}).Error
 }
