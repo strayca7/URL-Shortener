@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -84,8 +85,15 @@ func GetURL(shortCode string) (string, error) {
 	var shortURL ShortURL
 	err := MysqlDB.Where("short_code = ?", shortCode).First(&shortURL).Error
 	if err != nil {
+		log.Err(err).Msg("Short URL not found")
 		return "", err
 	}
+	
+	if shortURL.ExpireAt.Before(time.Now()) {
+		log.Warn().Msg("Short URL has expired")
+		return "", errors.New("short URL has expired")
+	}
+
 	return shortURL.OriginalURL, nil
 }
 func SaveURL(shortCode string, longURL string, c *gin.Context) error {

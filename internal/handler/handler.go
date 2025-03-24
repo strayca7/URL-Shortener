@@ -37,6 +37,11 @@ func RedirectHandler(c *gin.Context) {
 	shortCode := c.Param("code")
 
 	originalURL, err := database.GetURL(shortCode)
+	if err.Error() == "short URL has expired" {
+		log.Warn().Str("shortCode", shortCode).Msg("Short URL has expired")
+		c.JSON(http.StatusNotFound, gin.H{"error": "URL not found"})
+		return
+	}
 	if err != nil {
 		log.Err(err).Str("shortCode", shortCode).Msg("Failed to get original URL for shortCode ")
 		c.JSON(http.StatusNotFound, gin.H{"error": "URL not found"})
