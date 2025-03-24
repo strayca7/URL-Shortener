@@ -25,7 +25,7 @@ This service provides the following core functions:
 
 ## Getting Started
 
-User need to manually configure MySQL database.（database configuration details [config.yaml](https://github.com/strayca7/URL-Shortener/blob/main/config.yaml)）
+User need to manually configure MySQL database, database configuration details [config.yaml](https://github.com/strayca7/URL-Shortener/blob/main/config.yaml).
 
 You can also use [initialization script](https://github.com/strayca7/URL-Shortener/blob/main/script/initmysqldb.sql) .
 
@@ -36,4 +36,4 @@ docker build docker build -f Dockerfile.arm64 -t url-shorten:arm64/0.0.1 .
 ```bash
 docker run --rm -d -p 8080:8080 -v ./config.yaml:/app/config.yaml url-shorten:arm64/0.0.1
 ```
-
+Or you can use the images already built on [dockerhub](https://hub.docker.com/repository/docker/strayca7/url-shortener/general).
