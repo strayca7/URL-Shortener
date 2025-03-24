@@ -17,3 +17,22 @@
 
 ### **🔗 相关资源**   
  [部署指南](https://github.com/strayca7/URL-Shortener/wiki/Deploy)（支持 Docker 和 Kubernetes）  
+
+---
+
+
+
+## 快速开始
+
+需要在外部手动配置 MySQL 数据库。（数据库配置详请 [config.yaml](https://github.com/strayca7/URL-Shortener/blob/main/config.yaml)）
+
+也可使用 [初始化脚本](https://github.com/strayca7/URL-Shortener/blob/main/script/initmysqldb.sql) 。
+
+```bash
+docker build docker build -f Dockerfile.arm64 -t url-shorten:arm64/0.0.1 .
+```
+
+```bash
+docker run --rm -d -p 8080:8080 -v ./config.yaml:/app/config.yaml url-shorten:arm64/0.0.1
+```
+
