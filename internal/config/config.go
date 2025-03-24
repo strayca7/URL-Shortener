@@ -24,7 +24,7 @@ func init() {
 func initViper() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./internal/config")
+	viper.AddConfigPath("/app")
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal().Err(err)

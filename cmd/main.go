@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	pwd, _ := os.Getwd()
-	log.Info().Str("pwd", pwd).Msg("Starting server")
+	wd, _ := os.Getwd()
+	log.Info().Str("wd", wd).Msg("Starting server")
 	database.InitMysqlDB()
 	defer database.CloseMysqlDB()
 	router.Router()

@@ -25,7 +25,7 @@ type LoginRequest struct {
 //
 //	{
 //		"email":    "test@example.com",
-//		"password": "password123",
+//		"password": "password123"
 //	}
 //
 // 返回 JSON 格式为： / return JSON format as follows:
@@ -36,7 +36,7 @@ type LoginRequest struct {
 //		"user": {
 //			"user_id": user.UserID,
 //			"email":   user.Email,
-//		},
+//		}
 //	}
 func Login(c *gin.Context) {
 	var req LoginRequest
@@ -87,7 +87,7 @@ type RegisterRequest struct {
 //
 //	{
 //		"email":    "test@example.com",
-//		"password": "password123",
+//		"password": "password123"
 //	}
 func Register(c *gin.Context) {
 	var req RegisterRequest
