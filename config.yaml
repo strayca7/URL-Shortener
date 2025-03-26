@@ -3,7 +3,7 @@ jwt_secret: "secret"
 mysql:
   user: "root"
   password: "famcat777"
-  host: "host.docker.internal"
+  host: "mysql-0.mysql.devops.svc.cluster.local"
   port: "3306"
   database: "miniurl"
 
