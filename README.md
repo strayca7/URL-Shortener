@@ -30,7 +30,7 @@ User need to manually configure MySQL database, database configuration details [
 You can also use [initialization script](https://github.com/strayca7/URL-Shortener/blob/main/script/initmysqldb.sql) .
 
 ```bash
-docker build docker build -f Dockerfile.arm64 -t url-shorten:arm64/0.0.1 .
+docker build -f Dockerfile.arm64 -t url-shorten:arm64/0.0.1 .
 ```
 
 ```bash
