@@ -27,10 +27,10 @@
 需要在外部手动配置 MySQL 数据库，数据库配置详请 [config.yaml](https://github.com/strayca7/URL-Shortener/blob/main/config.yaml)，也可使用 [初始化脚本](https://github.com/strayca7/URL-Shortener/blob/main/script/initmysqldb.sql) 。
 
 ```bash
-docker build docker build -f Dockerfile.arm64 -t url-shorten:arm64/0.0.1 .
+docker build -f Dockerfile -t url-shortener:v0.0.1 .
 ```
 
 ```bash
-docker run --rm -d -p 8080:8080 -v ./config.yaml:/app/config.yaml url-shorten:arm64/0.0.1
+docker run --rm -p 8080:8080 -v ./config.yaml:/app/config.yaml url-shortener:v0.0.1
 ```
 你也可以直接使用在 [dockerhub](https://hub.docker.com/repository/docker/strayca7/url-shortener/general) 上构建好的镜像。

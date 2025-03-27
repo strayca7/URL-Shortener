@@ -34,6 +34,6 @@ docker build -f Dockerfile -t url-shortener:v0.0.1 .
 ```
 
 ```bash
-docker run --rm -p 8080:8080 -v ./config.yaml:/app/config.yaml url-shorten:v0.0.1
+docker run --rm -p 8080:8080 -v ./config.yaml:/app/config.yaml url-shortener:v0.0.1
 ```
 Or you can use the images already built on [dockerhub](https://hub.docker.com/repository/docker/strayca7/url-shortener/general).
