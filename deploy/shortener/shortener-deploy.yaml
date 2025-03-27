@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: shortener
-        image: strayca7/url-shortener:amd64v0.0.1
+        image: strayca7/url-shortener:v0.0.1
         resources:
           limits:
             memory: "128Mi"
@@ -26,7 +26,7 @@ spec:
           - name: config
             mountPath: /app/config.yaml
             subPath: config.yaml
-        readinessProbe:
+        livenessProbe:
           httpGet:
             path: /ping
             port: 8080
