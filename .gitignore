@@ -1,3 +1,7 @@
 /archive
-/.vscode
 *.log
+main
+.idea
+.vscode
+.git
+.DS_Store

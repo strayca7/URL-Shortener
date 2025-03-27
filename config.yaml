@@ -1,9 +1,11 @@
+# 不要集成在镜像中，应该用 ConfigMap 挂载到 /app 目录下
 jwt_secret: "secret"
 
 mysql:
   user: "root"
   password: "famcat777"
-  host: "mysql-0.mysql.devops.svc.cluster.local"
+  # 这里需要修改你的数据库地址
+  host: "host.docker.internal"
   port: "3306"
   database: "miniurl"
 

@@ -24,7 +24,6 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup -u 1001
 
 COPY --from=builder --chown=appuser:appgroup /app/main /app/
 COPY --from=builder --chown=appuser:appgroup /app/log /app/log/
-COPY --from=builder --chown=appuser:appgroup /app/config.yaml /app/
 
 RUN apk add --no-cache tzdata && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \

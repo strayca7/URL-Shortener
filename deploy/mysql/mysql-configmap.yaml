@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-configmap
+  namespace: devops
+data:
+  master.cnf: |
+    [mysqld]
+    bind-address = 0.0.0.0
+    log-bin = mysql-bin
+    server-id = 1
+    binlog_format = row
+    expire_logs_days = 7
+
+  slave.cnf: |
+    [mysqld]
+    super-read-only
+    server-id = 2
+    relay-log = relay-log
+    log-slave-updates = 1

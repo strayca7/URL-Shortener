@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup
+  namespace: devops
+spec:
+  schedule: "0 */3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: percona/percona-xtrabackup
+            command: ["/bin/sh", "-c"]
+            args: ["xtrabackup --backup --host=mysql-0.mysql-headless.mysql.svc.cluster.local --user=root --password=$MYSQL_ROOT_PASSWORD --target-dir=/backup/$(date +%F)"]
+          restartPolicy: OnFailure

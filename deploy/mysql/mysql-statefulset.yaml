@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: devops
+  labels:
+    app: mysql
+spec:
+  serviceName: mysql-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      # initContainers:
+      # - name: init-mysql
+      #   image: mysql:8.0
+      #   command:
+      #   - bash
+      #   - "-c"
+      #   - |
+      #     # 动态生成 server-id 并选择配置文件
+      #     if echo $(hostname) | grep -Eo '-[0-9]+$' > /dev/null; then
+      #       ordinal=$(echo $(hostname) | grep -Eo '[0-9]+$')
+      #     else
+      #       exit 1
+      #     fi
+      #     ordinal=${BASH_REMATCH[1]}
+      #     server_id=$((100 + ordinal))
+      #     echo "server-id=$server_id" > /mnt/conf.d/server-id.cnf
+      #     # 根据序号选择主从配置
+      #     if [ $ordinal -eq 0 ]; then
+      #       cp /mnt/configmap/master.cnf /mnt/conf.d/
+      #     else
+      #       cp /mnt/configmap/slave.cnf /mnt/conf.d/
+      #     fi
+      #   volumeMounts:
+      #   - name: configmap
+      #     mountPath: /mnt/configmap
+      #   - name: conf
+      #     mountPath: /mnt/conf.d
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-root-password
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/mysql
+        - name: conf
+          mountPath: /etc/mysql/conf.d
+        - name: init
+          mountPath: /docker-entrypoint-initdb.d/init.sql
+          subPath: init.sql
+        livenessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 30
+        readinessProbe:
+          exec:
+            command: ["mysqladmin", "ping", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      volumes:
+      - name: configmap
+        configMap:
+          name: mysql-configmap
+          items:
+            - key: master.cnf
+              path: master.cnf
+            - key: slave.cnf
+              path: slave.cnf
+      - name: init
+        configMap:
+          name: mysql-initdb
+          items:
+            - key: init.sql
+              path: init.sql
+      - name: conf
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteMany"]
+      storageClassName: "nfs-storage"
+      resources:
+        requests:
+          storage: 10Gi
+   
