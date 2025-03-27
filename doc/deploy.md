@@ -85,7 +85,7 @@ kubectl get storageclass
 # Jenkins
 
 ```bash
-kubectl apply -f deploy/jenkins
+kubectl apply -f deploy/jenkins/
 ```
 
 
@@ -95,7 +95,26 @@ kubectl apply -f deploy/jenkins
 确保调度节点内存大于 4GB。
 
 ```bash
-kubectl apply -f deploy/gitlab
+kubectl apply -f deploy/gitlab/
+```
+
+
+
+# MySQL
+
+```
+kubectl apply -f deploy/mysql/
+```
+
+如果数据库没有初始化可以进行以下操作：
+
+```bash
+kubectl exec -it mysql-0 -- mysql -uroot -p famcat777
+```
+
+```sql
+SHOW DATABASES;
+ CREATE DATABASE IF NOT EXISTS miniurl;
 ```
 
 

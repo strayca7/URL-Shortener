@@ -1,10 +1,12 @@
-# 不要集成在镜像中，应该用 ConfigMap 挂载到 /app 目录下
+# Config.yaml 不要集成在镜像中，应该用 ConfigMap 挂载到容器 /app/config.yaml 目录下
+# Do not integrate Config.yaml into the image, you should mount ConfigMap to the container /app/config.yaml directory
 jwt_secret: "secret"
 
 mysql:
   user: "root"
   password: "famcat777"
-  # 这里需要修改你的数据库地址
+  # 这里需要修改你的数据库地址，"127.0.0.1" 或者 "mysql.devops.svc.cluster.local"
+  # Here you need to modify your database address, "127.0.0.1" or "mysql.devops.svc.cluster.local"
   host: "host.docker.internal"
   port: "3306"
   database: "miniurl"

@@ -1,7 +1,7 @@
 /archive
 *.log
-main
 .idea
 .vscode
 .git
 .DS_Store
+*.tar

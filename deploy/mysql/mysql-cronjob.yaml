@@ -13,5 +13,5 @@ spec:
           - name: backup
             image: percona/percona-xtrabackup
             command: ["/bin/sh", "-c"]
-            args: ["xtrabackup --backup --host=mysql-0.mysql-headless.mysql.svc.cluster.local --user=root --password=$MYSQL_ROOT_PASSWORD --target-dir=/backup/$(date +%F)"]
+            args: ["xtrabackup --backup --host=mysql.devops.svc.cluster.local --user=root --password=$MYSQL_ROOT_PASSWORD --target-dir=/backup/$(date +%F)"]
           restartPolicy: OnFailure
