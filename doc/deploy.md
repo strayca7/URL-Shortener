@@ -109,12 +109,13 @@ kubectl apply -f deploy/mysql/
 如果数据库没有初始化可以进行以下操作：
 
 ```bash
-kubectl exec -it mysql-0 -- mysql -uroot -p famcat777
+kubectl exec -it mysql-0 -n devops -- mysql -uroot -p
+# 密码为 famcat777
 ```
 
 ```sql
 SHOW DATABASES;
- CREATE DATABASE IF NOT EXISTS miniurl;
+CREATE DATABASE IF NOT EXISTS miniurl;
 ```
 
 
