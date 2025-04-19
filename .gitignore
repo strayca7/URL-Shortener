@@ -1,7 +1,9 @@
 /archive
+/pipeline
 *.log
 .idea
 .vscode
 .git
 .DS_Store
 *.tar
+*.groovy

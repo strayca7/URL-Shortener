@@ -88,7 +88,7 @@ func GetURL(shortCode string) (string, error) {
 		log.Err(err).Msg("Short URL not found")
 		return "", err
 	}
-	
+
 	if shortURL.ExpireAt.Before(time.Now()) {
 		log.Warn().Msg("Short URL has expired")
 		return "", errors.New("short URL has expired")
@@ -152,4 +152,13 @@ func LogAccess(shortCode string, clientIP string) error {
 		"access_count": gorm.Expr("access_count + 1"),
 		"client_ips":   updatedIPs,
 	}).Error
+}
+
+// 通过用户ID获取用户所有短链
+func GetUserShortURLsByUserID(userID string) ([]ShortURL, error) {
+	var shortURLs []ShortURL
+	if err := MysqlDB.Where("user_id = ?", userID).Find(&shortURLs).Error; err != nil {
+		return nil, err
+	}
+	return shortURLs, nil
 }

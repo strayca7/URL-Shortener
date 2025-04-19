@@ -21,6 +21,12 @@ func Router() {
 			"message": "pong",
 		})
 	})
+	r.GET("/health", func(c *gin.Context){
+		log.Info().Msg("health check")
+		c.JSON(200, gin.H{
+			"message": "ok",
+		})
+	})
 
 	public := r.Group("")
 	{
@@ -35,6 +41,7 @@ func Router() {
 		authGroup.POST("/refresh", util.RefreshTokenHandler)
 		authGroup.POST("/shorten", handler.CreateShorterCodeHandler)
 		authGroup.POST("/short/:code", handler.RedirectHandler)
+		authGroup.GET("/shortcodes", handler.GetUserShortURLsHandler)
 	}
 
 	r.Run(":8080")

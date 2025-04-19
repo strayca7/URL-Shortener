@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"sync"
 
@@ -63,4 +64,29 @@ func RedirectHandler(c *gin.Context) {
 
 	log.Info().Str("shortCode", shortCode).Str("original URL", originalURL).Msg("Redirecting shortCode ")
 	c.Redirect(http.StatusFound, originalURL)
+}
+
+// GetUserShortURLsHandler 获取用户短链接列表
+func GetUserShortURLsHandler(c *gin.Context) {
+	userID, exist := c.Get("user_ID")
+	if !exist {
+		log.Err(errors.New("userID not found")).Msg("userID not found")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userIDStr, ok := userID.(string)
+	if !ok {
+		log.Err(errors.New("error asserting userID to string"))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	shortURLs, err := database.GetUserShortURLsByUserID(userIDStr)
+	if err != nil {
+		log.Err(err).Str("userID", userIDStr).Msg("Failed to get short URLs for userID ")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get short URLs"})
+	}
+
+	c.JSON(http.StatusOK, shortURLs)
 }

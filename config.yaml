@@ -7,7 +7,8 @@ mysql:
   password: "famcat777"
   # 这里需要修改你的数据库地址，"127.0.0.1" 或者 "mysql.devops.svc.cluster.local"
   # Here you need to modify your database address, "127.0.0.1" or "mysql.devops.svc.cluster.local"
-  host: "host.docker.internal"
+  host: "localhost"
+  # host: "host.docker.internal"
   port: "3306"
   database: "miniurl"
 

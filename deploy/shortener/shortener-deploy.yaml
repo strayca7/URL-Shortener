@@ -24,8 +24,7 @@ spec:
         - containerPort: 8080
         volumeMounts:
           - name: config
-            mountPath: /app/config.yaml
-            subPath: config.yaml
+            mountPath: /etc/config.yaml
         livenessProbe:
           httpGet:
             path: /ping
