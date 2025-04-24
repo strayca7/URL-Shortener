@@ -37,7 +37,7 @@ func CreateShorterCodeHandler(c *gin.Context) {
 func RedirectHandler(c *gin.Context) {
 	shortCode := c.Param("code")
 
-	originalURL, err := database.GetURL(shortCode)
+	originalURL, err := database.GetOriginalURLByShortCode(shortCode)
 	if err.Error() == "short URL has expired" {
 		log.Warn().Str("shortCode", shortCode).Msg("Short URL has expired")
 		c.JSON(http.StatusNotFound, gin.H{"error": "URL not found"})
@@ -68,10 +68,10 @@ func RedirectHandler(c *gin.Context) {
 
 // GetUserShortURLsHandler 获取用户短链接列表
 func GetUserShortURLsHandler(c *gin.Context) {
-	userID, exist := c.Get("user_ID")
+	userID, exist := c.Get("user_id")
 	if !exist {
-		log.Err(errors.New("userID not found")).Msg("userID not found")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		log.Err(errors.New("user ID not found"))
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID not found"})
 		return
 	}
 
@@ -88,5 +88,11 @@ func GetUserShortURLsHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get short URLs"})
 	}
 
+	log.Info().Str("userID", userIDStr).Msg("Get short URLs for userID ")
+	if len(shortURLs) == 0 {
+		log.Info().Str("userID", userIDStr).Msg("No short URLs found for userID ")
+		c.JSON(http.StatusOK, gin.H{"message": "No short URLs found"})
+		return
+	}
 	c.JSON(http.StatusOK, shortURLs)
 }

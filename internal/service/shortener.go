@@ -50,8 +50,8 @@ func ShortCodeCreater(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
-	if err := database.MysqlDB.Create(&database.ShortURL{UserID: userIDStr, ShortCode: shortCode, OriginalURL: req.LongURL, ExpireAt: time.Now().Add(90 * 24 * time.Hour)}).Error; err != nil {
-		log.Err(err).Msg("Failed to create short URL")
+	if err := database.CreateShortURL(database.ShortURL{UserID: userIDStr, ShortCode: shortCode, OriginalURL: req.LongURL, ExpireAt: time.Now().Add(90 * 24 * time.Hour)}, c); err != nil {
+		log.Info().Err(err).Msg("Failed to create short URL")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "save failed"})
 		return
 	}

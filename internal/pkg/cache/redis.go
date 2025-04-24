@@ -3,15 +3,16 @@ package cache
 import (
 	"context"
 	"time"
+	"url-shortener/internal/pkg/database"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )
 
-var RedisCli *redis.Client
+var Rdb *redis.Client
 
 func InitRedis() {
-	RedisCli = redis.NewClient(&redis.Options{
+	Rdb = redis.NewClient(&redis.Options{
 		Addr:         "localhost:6379",
 		Password:     "",
 		DB:           0,
@@ -24,7 +25,7 @@ func InitRedis() {
 	})
 
 	ctx := context.Background()
-	_, err := RedisCli.Ping(ctx).Result()
+	_, err := Rdb.Ping(ctx).Result()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to Redis")
 	}
@@ -32,7 +33,7 @@ func InitRedis() {
 }
 
 func CloseRedis() {
-	if err := RedisCli.Close(); err != nil {
+	if err := Rdb.Close(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to close Redis connection")
 	}
 	log.Debug().Msg("Redis connection closed")
@@ -40,18 +41,29 @@ func CloseRedis() {
 
 func GetURL(shortCode string) (string, error) {
 	ctx := context.Background()
-	longURL, err := RedisCli.Get(ctx, shortCode).Result()
+	longURL, err := Rdb.Get(ctx, shortCode).Result()
 	if err != nil {
 		return "", err
 	}
 	return longURL, nil
 }
 
-func SetURL(shortCode, longURL string) error {
+// 存储 ShortURL 到 Redis
+func SaveShortURL(url database.ShortURL) error {
 	ctx := context.Background()
-	err := RedisCli.Set(ctx, shortCode, longURL, 90*24*time.Duration(time.Hour)).Err()
+	// 使用 Hash 存储短链接元数据
+	err := Rdb.HSet(ctx, "shorturl:"+url.ShortCode,
+		"original_url", url.OriginalURL,
+		"expire_at", url.ExpireAt.Format(time.RFC3339),
+		"user_id", url.UserID,
+	).Err()
 	if err != nil {
 		return err
+	}
+
+	// 设置过期时间（若需）
+	if !url.ExpireAt.IsZero() {
+		Rdb.ExpireAt(ctx, "shorturl:"+url.ShortCode, url.ExpireAt)
 	}
 	return nil
 }

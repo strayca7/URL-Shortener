@@ -21,7 +21,7 @@ func Router() {
 			"message": "pong",
 		})
 	})
-	r.GET("/health", func(c *gin.Context){
+	r.GET("/health", func(c *gin.Context) {
 		log.Info().Msg("health check")
 		c.JSON(200, gin.H{
 			"message": "ok",
@@ -44,5 +44,8 @@ func Router() {
 		authGroup.GET("/shortcodes", handler.GetUserShortURLsHandler)
 	}
 
-	r.Run(":8080")
+	if err := r.Run(":8080"); err != nil {
+		log.Fatal().Msgf("failed to start server: %v", err)
+	}
+	log.Info().Msg("server started on :8080")
 }

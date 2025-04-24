@@ -8,11 +8,11 @@ import (
 )
 
 // 未启用，集成 MySQL,Redis 存储URL
-func SaveURL(url string, shortCode string, c *gin.Context) error {
-	if err := database.SaveURL(shortCode, url, c); err != nil {
+func RecordURL(short database.ShortURL, c *gin.Context) error {
+	if err := database.CreateShortURL(short, c); err != nil {
 		return err
 	}
-	if err := cache.SetURL(shortCode, url); err != nil {
+	if err := cache.SaveShortURL(short); err != nil {
 		return err
 	}
 	return nil

@@ -38,23 +38,28 @@ type LoginRequest struct {
 //			"email":   user.Email,
 //		}
 //	}
+//
+// TODO: 认证失败次数，ip 存入数据库，限制登录次数
 func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Err(err).Msg("Request body is invalid")
+		log.Info().Err(err).Msg("Request body is invalid")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "request body is invalid"})
 		return
 	}
 
-	var user database.User
-	if err := database.MysqlDB.Where("email = ?", req.Email).First(&user).Error; err == gorm.ErrRecordNotFound {
-		log.Debug().Err(err).Msg("Email not found")
+	user, err := database.GetUserByEmail(req.Email)
+	if err == gorm.ErrRecordNotFound {
+		log.Info().Err(err).Msg("Email not found")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "email not found"})
 		return
 	}
+	if err != nil {
+		log.Info().Err(err).Msg("Failed to get user by email")
+	}
 
 	if !util.ComparePassword(user.PasswordHash, req.Password) {
-		log.Debug().Msg("Wrong password")
+		log.Info().Msg("Wrong password")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "wrong password"})
 		return
 	}
@@ -96,9 +101,16 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	var existingUser database.User
-	if err := database.MysqlDB.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
+	_, err := database.GetUserByEmail(req.Email)
+	if err == gorm.ErrRecordNotFound {
+		log.Info().Msg("This email has not been registered, process to register")
+	} else if err == nil {
+		log.Info().Err(err).Msg("Email already registered")
 		c.JSON(http.StatusConflict, gin.H{"error": "email already registered"})
+		return
+	} else {
+		log.Info().Err(err).Msg("Failed to get user by email")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
@@ -115,10 +127,12 @@ func Register(c *gin.Context) {
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
 	}
-	if err := database.MysqlDB.Create(&newUser).Error; err != nil {
+	if err := database.CreateUser(newUser); err != nil {
+		log.Info().Err(err).Msg("Failed to create user")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register"})
 		return
 	}
+	log.Info().Msg("User registered successfully")
 
 	c.JSON(http.StatusCreated, gin.H{
 		"user_id": userID,

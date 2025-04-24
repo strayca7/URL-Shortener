@@ -119,7 +119,7 @@ func ParseRefreshToken(tokenString string) (*jwt.RegisteredClaims, error) {
 
 // 未启用，使用 Redis 存储 Refresh Token 白名单
 func StoreRefreshToken(userID string, refreshToken string) error {
-	return cache.RedisCli.Set(
+	return cache.Rdb.Set(
 		context.Background(),
 		fmt.Sprintf("refresh:%s", userID),
 		refreshToken,

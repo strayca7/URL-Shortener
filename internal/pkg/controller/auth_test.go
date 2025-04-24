@@ -3,9 +3,11 @@ package controller
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"url-shortener/internal/handler"
 	"url-shortener/internal/pkg/database"
@@ -13,8 +15,37 @@ import (
 	"url-shortener/internal/pkg/util"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("../../../")
+	if err := viper.ReadInConfig(); err != nil {
+		panic("Error reading config file")
+	}
+
+	consoleWriter := zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		TimeFormat: "2006-01-02 15:04:05",
+		NoColor:    false,
+	}
+
+	var multiWriter zerolog.LevelWriter = zerolog.MultiLevelWriter(consoleWriter)
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
+	log.Logger = zerolog.New(multiWriter).
+		With().
+		Timestamp().
+		Logger()
+
+	log.Debug().Msg("Init logger")
+	log.Info().Err(errors.New("test error")).Msg("error")
+}
 
 func TestRegister(t *testing.T) {
 	database.InitMysqlDB()
@@ -45,7 +76,9 @@ func TestRegister(t *testing.T) {
 			Email:        "test@example.com",
 			PasswordHash: "hashed-password",
 		}
-		database.MysqlDB.Create(&existingUser)
+		if err := database.CreateUser(existingUser); err != nil {
+			t.Fatalf("failed to save test user: %v", err)
+		}
 
 		body := `{"email": "test@example.com", "password": "P@ssw0rd"}`
 		req, _ := http.NewRequest("POST", "/register", bytes.NewBufferString(body))
@@ -91,7 +124,7 @@ func TestLogin(t *testing.T) {
 
 	// 测试注册成功
 	t.Run("Successful Registration", func(t *testing.T) {
-		body := `{"email": "newuser3@example.com", "password": "P@ssw0rd"}`
+		body := `{"email": "newuser4@example.com", "password": "P@ssw0rd"}`
 		req, _ := http.NewRequest("POST", "/register", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -101,13 +134,13 @@ func TestLogin(t *testing.T) {
 		assert.Equal(t, http.StatusCreated, w.Code)
 		fmt.Println(w.Body.String())
 		assert.Contains(t, w.Body.String(), "user_id")
-		assert.Contains(t, w.Body.String(), "newuser3@example.com")
+		assert.Contains(t, w.Body.String(), "newuser4@example.com")
 	})
 
 	// 测试登录并发送 Token 和 long_url
 	t.Run("Login and Create Short URL", func(t *testing.T) {
 		// 登录请求
-		loginBody := `{"email": "newuser3@example.com", "password": "P@ssw0rd"}`
+		loginBody := `{"email": "newuser4@example.com", "password": "P@ssw0rd"}`
 		req, _ := http.NewRequest("POST", "/login", bytes.NewBufferString(loginBody))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
