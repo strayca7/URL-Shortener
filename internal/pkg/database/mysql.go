@@ -43,6 +43,8 @@ type ClientIP struct {
 
 // DB 操作
 func InitMysqlDB() error {
+	log.Info().Msg("** Strat init mysql db **")
+
 	var (
 		mydbUser     = viper.GetString("mysql.user")
 		mydbPassword = viper.GetString("mysql.password")
@@ -73,13 +75,15 @@ func InitMysqlDB() error {
 		log.Err(err).Msg("Failed to ping MySQL")
 		return err
 	}
-	log.Debug().Msg("Successfully connected to MySQL")
+	log.Info().Msg("Successfully connected to MySQL")
 
 	// TODO: 使用 job 或者 initContainer 来执行 AutoMigerate，避免每次启动都执行
 	if err := mysqlDB.AutoMigrate(&User{}, &ShortURL{}, &ClientIP{}); err != nil {
 		log.Err(err).Msg("Failed to migrate MySQL")
 	}
-	log.Debug().Msg("MySQL migration completed")
+	log.Info().Msg("MySQL migration completed")
+
+	log.Info().Msg("** Init mysql db finished! **")
 
 	return err
 }
@@ -91,7 +95,7 @@ func CloseMysqlDB() {
 		return
 	}
 	sqlDB.Close()
-	log.Debug().Msg("MySQL connection closed")
+	log.Info().Msg("MySQL connection closed")
 }
 
 // 用户操作
