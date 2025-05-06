@@ -8,7 +8,8 @@ mysql:
   # 这里需要修改你的数据库地址，"127.0.0.1" 或者 "mysql.devops.svc.cluster.local"
   # Here you need to modify your database address, "127.0.0.1" or "mysql.devops.svc.cluster.local"
   host: "localhost"
-  # host: "host.docker.internal"
+  # 如果你在 docker 中运行 mysql，host 需要改成 "host.docker.internal"
+  # If you your mysql run in docker container, host need to chnage to "host.docker.internal"
   port: "3306"
   database: "miniurl"
 

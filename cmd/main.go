@@ -11,12 +11,18 @@ import (
 
 func main() {
 	wd, _ := os.Getwd()
-	log.Info().Str("wd", wd).Msg("Starting server")
-	err := database.InitMysqlDB()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to MySQL")
+	log.Info().Str("wd", wd).Msg("** Starting server **")
+
+	if err := database.InitMysqlDB(); err != nil {
+		log.Fatal().Msg("Failed to connect to MySQL")
+		return
 	}
-	defer database.CloseMysqlDB()
+	defer func() {
+		if err := database.CloseMysqlDB(); err != nil {
+			log.Err(err).Msg("Error closing MySQL connection")
+		}
+	}()
+
 	router.Router()
 	// cache.InitRedis()
 	// defer cache.CloseRedis()

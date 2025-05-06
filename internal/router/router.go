@@ -28,7 +28,7 @@ func Router() {
 		})
 	})
 
-	public := r.Group("")
+	public := r.Group("/public")
 	{
 		public.POST("/register", controller.Register)
 		limiter := tollbooth.NewLimiter(5, nil) // 每秒5次请求
@@ -45,7 +45,7 @@ func Router() {
 	}
 
 	if err := r.Run(":8080"); err != nil {
-		log.Fatal().Msgf("failed to start server: %v", err)
+		log.Fatal().Err(err).Msg("failed to start server")
 	}
-	log.Info().Msg("server started on :8080")
+	log.Info().Msg("server started on 8080")
 }

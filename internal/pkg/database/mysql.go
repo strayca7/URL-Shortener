@@ -41,9 +41,17 @@ type ClientIP struct {
 	ShortURLID uint   `gorm:"index;not null"`            // 外键关联ShortURL
 }
 
+const (
+	retries         = 25                     // 最大重试次数
+	maxRetryDelay   = 100 * time.Millisecond // 最大重试延迟
+	maxIdleConns    = 10                     // 最大空闲连接数
+	maxOpenConns    = 100                    // 最大打开连接数
+	connMaxLifetime = 3 * time.Hour          // 连接最大存活时间
+)
+
 // DB 操作
 func InitMysqlDB() error {
-	log.Info().Msg("** Strat init mysql db **")
+	log.Info().Msg("** Start init mysql db **")
 
 	var (
 		mydbUser     = viper.GetString("mysql.user")
@@ -54,10 +62,17 @@ func InitMysqlDB() error {
 	)
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", mydbUser, mydbPassword, mydbHost, mydbPort, mydbName)
 
-	var err error = nil
-	mysqlDB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	var err error
+	// 尝试连接 MySQL 数据库，最多重试 25 次
+	for range retries {
+		mysqlDB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err == nil {
+			break
+		}
+		time.Sleep(maxRetryDelay)
+	}
 	if err != nil {
-		log.Err(err).Msg("MySQL connection error")
+		log.Err(err).Msg("Failed to connect to MySQL, has been retried 100 times")
 		return err
 	}
 
@@ -67,9 +82,9 @@ func InitMysqlDB() error {
 		return err
 	}
 
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(3 * time.Hour)
+	sqlDB.SetMaxIdleConns(maxIdleConns)       // 设置空闲连接池大小
+	sqlDB.SetMaxOpenConns(maxOpenConns)       // 设置最大打开连接数
+	sqlDB.SetConnMaxLifetime(connMaxLifetime) // 设置连接最大存活时间
 
 	if err := sqlDB.Ping(); err != nil {
 		log.Err(err).Msg("Failed to ping MySQL")
@@ -88,14 +103,19 @@ func InitMysqlDB() error {
 	return err
 }
 
-func CloseMysqlDB() {
+func CloseMysqlDB() error {
 	sqlDB, err := mysqlDB.DB()
 	if err != nil {
 		log.Err(err).Msg("Failed to get underlying *sql.DB")
-		return
+		return err
 	}
-	sqlDB.Close()
+
+	if err := sqlDB.Close(); err != nil {
+		log.Err(err).Msg("Failed to close MySQL connection")
+		return err
+	}
 	log.Info().Msg("MySQL connection closed")
+	return nil
 }
 
 // 用户操作
