@@ -66,7 +66,7 @@ func TestRedirect(t *testing.T) {
 	authGroup.Use(middleware.JwtAuth())
 	{
 		authGroup.POST("/short", CreateShorterCodeHandler)
-		authGroup.POST("/:code", RedirectHandler)
+		authGroup.POST("/:code", RedirectUserCodeHandler)
 	}
 
 	t.Run("Successful Registration", func(t *testing.T) {

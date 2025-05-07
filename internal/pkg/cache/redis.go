@@ -49,7 +49,7 @@ func GetURL(shortCode string) (string, error) {
 }
 
 // 存储 ShortURL 到 Redis
-func SaveShortURL(url database.ShortURL) error {
+func SaveShortURL(url database.UserShortURL) error {
 	ctx := context.Background()
 	// 使用 Hash 存储短链接元数据
 	err := Rdb.HSet(ctx, "shorturl:"+url.ShortCode,

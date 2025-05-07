@@ -20,7 +20,7 @@ func ShortCodeCreater(c *gin.Context) {
 	userID, exist := c.Get("user_id")
 	if !exist {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Unauthorized",
+			"error": "unauthorized",
 		})
 		return
 	}
@@ -46,12 +46,12 @@ func ShortCodeCreater(c *gin.Context) {
 
 	userIDStr, ok := userID.(string)
 	if !ok {
-		log.Info().Msg("error asserting userID to string")
+		log.Warn().Msg("Error asserting userID to string")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
-	if err := database.CreateShortURL(database.ShortURL{UserID: userIDStr, ShortCode: shortCode, OriginalURL: req.LongURL, ExpireAt: time.Now().Add(90 * 24 * time.Hour)}, c); err != nil {
-		log.Info().Err(err).Msg("Failed to create short URL")
+	if err := database.CreateUserShortURL(database.UserShortURL{UserID: userIDStr, ShortCode: shortCode, OriginalURL: req.LongURL, ExpireAt: time.Now().Add(90 * 24 * time.Hour)}, c.ClientIP()); err != nil {
+		log.Warn().Err(err).Msg("Failed to create short URL")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "save failed"})
 		return
 	}

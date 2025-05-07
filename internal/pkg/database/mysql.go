@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
@@ -14,17 +13,17 @@ import (
 
 var mysqlDB *gorm.DB
 
-// User表结构
+// 用户表
 type User struct {
 	gorm.Model
-	UserID       string     `gorm:"type:varchar(36);uniqueIndex;not null"` // UUID格式
-	Email        string     `gorm:"type:varchar(255);uniqueIndex;not null"`
-	PasswordHash string     `gorm:"type:varchar(255);not null"` // 存储bcrypt哈希
-	ShortURLs    []ShortURL `gorm:"foreignKey:UserID;references:UserID;onDelete:CASCADE"`
+	UserID       string         `gorm:"type:varchar(36);uniqueIndex;not null"` // UUID格式
+	Email        string         `gorm:"type:varchar(255);uniqueIndex;not null"`
+	PasswordHash string         `gorm:"type:varchar(255);not null"` // 存储bcrypt哈希
+	ShortURLs    []UserShortURL `gorm:"foreignKey:UserID;references:UserID;onDelete:CASCADE"`
 }
 
-// 短链表结构
-type ShortURL struct {
+// 用户短链表
+type UserShortURL struct {
 	gorm.Model
 	OriginalURL string     `gorm:"type:text;not null"`
 	ShortCode   string     `gorm:"type:varchar(10);uniqueIndex;not null"` // 短码6-10位
@@ -34,11 +33,20 @@ type ShortURL struct {
 	UserID      string     `gorm:"type:varchar(36);index;not null"` // 外键关联
 }
 
-// 客户端IP表结构
+// 客户端IP表
 type ClientIP struct {
 	gorm.Model
 	IPAddress  string `gorm:"type:varchar(45);not null"` // IPv4/IPv6地址
-	ShortURLID uint   `gorm:"index;not null"`            // 外键关联ShortURL
+	ShortURLID uint   `gorm:"index;not null"`            // 外键关联UserShortURL
+}
+
+// 公开短链表
+type PublicShortURL struct {
+	gorm.Model
+	ShortCode   string    `gorm:"size:10;uniqueIndex;not null"` // 短链码
+	OriginalURL string    `gorm:"type:text;not null"`           // 原始URL
+	ExpiresAt   time.Time // 过期时间
+	AccessCount uint      `gorm:"default:0"` // 访问计数
 }
 
 const (
@@ -93,8 +101,11 @@ func InitMysqlDB() error {
 	log.Info().Msg("Successfully connected to MySQL")
 
 	// TODO: 使用 job 或者 initContainer 来执行 AutoMigerate，避免每次启动都执行
-	if err := mysqlDB.AutoMigrate(&User{}, &ShortURL{}, &ClientIP{}); err != nil {
+	if err := mysqlDB.AutoMigrate(&User{}, &UserShortURL{}, &ClientIP{}); err != nil {
 		log.Err(err).Msg("Failed to migrate MySQL")
+	}
+	if err := mysqlDB.AutoMigrate(&PublicShortURL{}); err != nil {
+		log.Err(err).Msg("Failed to migrate PublicShortURL")
 	}
 	log.Info().Msg("MySQL migration completed")
 
@@ -120,6 +131,7 @@ func CloseMysqlDB() error {
 
 // 用户操作
 
+// 创建用户
 func CreateUser(user User) error {
 	if err := mysqlDB.Create(&user).Error; err != nil {
 		return err
@@ -127,7 +139,7 @@ func CreateUser(user User) error {
 	return nil
 }
 
-// GetUserByEmail 通过邮箱获取用户
+// 通过邮箱获取用户
 func GetUserByEmail(email string) (User, error) {
 	var user User
 	if err := mysqlDB.Where("email = ?", email).First(&user).Error; err != nil {
@@ -136,80 +148,81 @@ func GetUserByEmail(email string) (User, error) {
 	return user, nil
 }
 
-// GetOriginalURLByShortCode 通过短码获取原始链接
+// 通过短码获取原始链接
 func GetOriginalURLByShortCode(shortCode string) (string, error) {
-	var shortURL ShortURL
+	var shortURL UserShortURL
 	if err := mysqlDB.Where("short_code = ?", shortCode).First(&shortURL).Error; err != nil {
 		return "", err
 	}
 
 	if shortURL.ExpireAt.Before(time.Now()) {
-		log.Info().Msg("Short URL has expired")
-		return "", errors.New("short URL has expired")
+		log.Debug().Msg("Short URL has expired")
+		return "", errors.New("user short URL has expired")
 	}
 
 	return shortURL.OriginalURL, nil
 }
 
-// GetShortURLByShortCode 通过短码获取短链接信息
+// 通过短码获取短链接信息
 //
 // 这里返回的是短链接的所有信息，包括原始链接、短码、过期时间等
-func GetURLByShortCode(shortCode string) (ShortURL, error) {
-	var shortURL ShortURL
+func GetURLByShortCode(shortCode string) (UserShortURL, error) {
+	var shortURL UserShortURL
 	if err := mysqlDB.Where("short_code = ?", shortCode).First(&shortURL).Error; err != nil {
-		log.Err(err).Msg("Short URL not found")
-		return ShortURL{}, err
+		log.Debug().Msg("User short URL not found")
+		return UserShortURL{}, err
 	}
 
 	if shortURL.ExpireAt.Before(time.Now()) {
-		log.Warn().Msg("Short URL has expired")
-		return ShortURL{}, errors.New("short URL has expired")
+		log.Debug().Msg("Short URL has expired")
+		return UserShortURL{}, errors.New("short URL has expired")
 	}
 
 	return shortURL, nil
 }
 
-// CreateURL 保存短链接口
-func CreateShortURL(short ShortURL, c *gin.Context) error {
+// 创建用户短链
+func CreateUserShortURL(short UserShortURL, clientIP string) error {
 	if err := mysqlDB.Create(&short).Error; err != nil {
-		log.Err(err).Msg("Failed to save short URL")
+		log.Debug().Msg("Failed to save short URL")
 		return err
 	}
-	if err := mysqlDB.Create(&ClientIP{IPAddress: c.ClientIP(), ShortURLID: short.ID}).Error; err != nil {
-		log.Err(err).Msg("Failed to save client IP")
+	if err := mysqlDB.Create(&ClientIP{IPAddress: clientIP, ShortURLID: short.ID}).Error; err != nil {
+		log.Debug().Msg("Failed to save client IP")
 		return err
 	}
 	return nil
 }
 
-// LogAccess 记录访问信息
-func LogAccess(shortCode string, clientIP string) error {
+// 记录用户访问信息
+func LogUserAccess(shortCode string, clientIP string) error {
 	var (
-		shortURL ShortURL
-		err      error
+		userShortURL UserShortURL
+		err          error
 	)
 
 	// 查询短链记录
-	if err = mysqlDB.Where("short_code = ?", shortCode).First(&shortURL).Error; err != nil {
-		log.Err(err).Msg("Short URL not found")
+	if err = mysqlDB.Where("short_code = ?", shortCode).First(&userShortURL).Error; err != nil {
+		log.Debug().Msg("User short URL not found")
 		return err
 	}
 
 	// 更新访问计数和 IP 列表
-	if err = mysqlDB.Model(&ShortURL{}).Where("short_code = ?", shortCode).Updates(map[string]interface{}{
+	if err = mysqlDB.Model(&UserShortURL{}).Where("short_code = ?", shortCode).Updates(map[string]interface{}{
 		"access_count": gorm.Expr("access_count + 1"),
 	}).Error; err != nil {
-		log.Err(err).Msg("Failed to update access count")
+		log.Debug().Msg("Failed to update access count")
 		return err
 	}
 
-	if err = SaveClientIP(shortURL.ID, clientIP); err != nil {
-		log.Err(err).Msg("Failed to append client IP")
+	if err = SaveClientIP(userShortURL.ID, clientIP); err != nil {
+		log.Debug().Msg("Failed to append client IP")
 		return err
 	}
 
 	return nil
 }
+
 
 func SaveClientIP(shortURLID uint, clientIP string) error {
 	var err error
@@ -220,11 +233,87 @@ func SaveClientIP(shortURLID uint, clientIP string) error {
 }
 
 // 通过用户ID获取用户所有短链
-func GetUserShortURLsByUserID(userID string) ([]ShortURL, error) {
-	var shortURLs []ShortURL
+func GetUserShortURLsByUserID(userID string) ([]UserShortURL, error) {
+	var shortURLs []UserShortURL
 	if err := mysqlDB.Where("user_id = ?", userID).Find(&shortURLs).Error; err != nil {
-		log.Err(err).Msg("Failed to get short URLs for userID")
+		log.Debug().Msg("Failed to get short URLs for userID")
 		return nil, err
 	}
 	return shortURLs, nil
+}
+
+// 公共操作
+
+// 记录公开短链访问信息
+func LogPublicAccess(shortcode string) error {
+	var (
+		publicShortURL PublicShortURL
+		err           error
+	)
+
+	// 查询短链记录
+	if err = mysqlDB.Where("short_code = ?", shortcode).First(&publicShortURL).Error; err != nil {
+		log.Debug().Msg("Public short URL not found")
+		return err
+	}
+
+	// 更新访问计数
+	if err = mysqlDB.Model(&PublicShortURL{}).Where("short_code = ?", shortcode).Updates(map[string]interface{}{
+		"access_count": gorm.Expr("access_count + 1"),
+	}).Error; err != nil {
+		log.Debug().Msg("Failed to update access count")
+		return err
+	}
+
+	return nil
+}
+
+// 创建公开短链
+func CreatePublicShortURL(short PublicShortURL) error {
+	if err := mysqlDB.Create(&short).Error; err != nil {
+		log.Debug().Msg("Failed to save public short URL")
+		return err
+	}
+	return nil
+}
+
+// 通过短码获取公开短链信息
+func GetPublicShortURLByShortCode(shortCode string) (string, error) {
+	var publicShortURL PublicShortURL
+	if err := mysqlDB.Where("short_code = ?", shortCode).First(&publicShortURL).Error; err != nil {
+		log.Debug().Msg("Public short URL not found")
+		return "", err
+	}
+
+	if publicShortURL.ExpiresAt.Before(time.Now()) {
+		log.Debug().Msg("Public short URL has expired")
+		return "", errors.New("public short URL has expired")
+	}
+
+	return publicShortURL.OriginalURL, nil
+}
+
+// 获取所有公开短链
+func GetAllPublicShortURLs() ([]PublicShortURL, error) {
+	var publicShortURLs []PublicShortURL
+	if err := mysqlDB.Find(&publicShortURLs).Error; err != nil {
+		log.Debug().Msg("Failed to get all public short URLs")
+		return nil, err
+	}
+	return publicShortURLs, nil
+}
+
+// 通过短码删除公开短链
+func DeletePublicShortURLByShortCode(shortCode string) error {
+	var publicShortURL PublicShortURL
+	if err := mysqlDB.Where("short_code = ?", shortCode).First(&publicShortURL).Error; err != nil {
+		log.Debug().Msg("Public short URL not found")
+		return err
+	}
+
+	if err := mysqlDB.Delete(&publicShortURL).Error; err != nil {
+		log.Debug().Msg("Failed to delete public short URL")
+		return err
+	}
+	return nil
 }

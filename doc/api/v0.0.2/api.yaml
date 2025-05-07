@@ -1,0 +1,337 @@
+openapi: 3.0.0
+info:
+  title: URL Shortener API
+  description: URL缩短服务的API文档
+  version: 1.0.0
+  
+servers:
+  - url: http://localhost:8080
+    description: 本地开发服务器
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    RefreshToken:
+      type: apiKey
+      in: header
+      name: refresh_token
+      
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 32
+          
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        user:
+          type: object
+          properties:
+            user_id:
+              type: string
+            email:
+              type: string
+              
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 32
+          
+    RegisterResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+          
+    CreateShortURLRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          
+    ShortURL:
+      type: object
+      properties:
+        id:
+          type: string
+        original_url:
+          type: string
+        short_code:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        access_count:
+          type: integer
+          format: int32
+          
+paths:
+  /healthz:
+    get:
+      summary: 健康检查端点
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "ok"
+
+  /public/register:
+    post:
+      summary: 用户注册
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          description: 参数格式错误
+        '409':
+          description: 邮箱已被注册
+        '500':
+          description: 服务器内部错误
+
+  /public/login:
+    post:
+      summary: 用户登录
+      description: 每秒限制5次请求
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: 请求格式无效
+        '401':
+          description: 认证失败
+        '500':
+          description: 服务器内部错误
+
+  /public/{code}:
+    get:
+      summary: 公共短链接重定向
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: 重定向到原始URL
+        '404':
+          description: 短链接不存在或已过期
+        '500':
+          description: 服务器内部错误
+
+  /public/shortcodes:
+    get:
+      summary: 获取所有短链接
+      responses:
+        '200':
+          description: 成功获取短链接列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShortURL'
+        '500':
+          description: 服务器内部错误
+
+  /public/short/{code}:
+    delete:
+      summary: 删除公共短链接
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功删除公共短链接
+        '404':
+          description: 短链接不存在或已过期
+        '500':
+          description: 服务器内部错误
+
+  /auth/short/new:
+    post:
+      summary: 创建短链接
+      security:
+        - BearerAuth: []
+        - RefreshToken: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token，格式为 "Bearer <access_token>"
+        - in: header
+          name: refresh_token
+          schema:
+            type: string
+          required: true
+          description: 刷新令牌
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateShortURLRequest'
+      responses:
+        '200':
+          description: 成功创建短链接
+        '401':
+          description: 未授权
+        '500':
+          description: 服务器内部错误
+
+  /auth/{code}:
+    post:
+      summary: 短链接重定向
+      security:
+        - BearerAuth: []
+        - RefreshToken: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token，格式为 "Bearer <access_token>"
+        - in: header
+          name: refresh_token
+          schema:
+            type: string
+          required: true
+          description: 刷新令牌
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: 重定向到原始URL
+        '404':
+          description: 链接不存在或已过期
+        '500':
+          description: 服务器内部错误
+
+  /auth/shortcodes:
+    get:
+      summary: 获取用户的所有短链接
+      security:
+        - BearerAuth: []
+        - RefreshToken: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token，格式为 "Bearer <access_token>"
+        - in: header
+          name: refresh_token
+          schema:
+            type: string
+          required: true
+          description: 刷新令牌
+      responses:
+        '200':
+          description: 成功获取短链接列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShortURL'
+        '401':
+          description: 未授权
+        '500':
+          description: 服务器内部错误
+
+  /auth/refresh:
+    post:
+      summary: 刷新访问令牌
+      security:
+        - BearerAuth: []
+        - RefreshToken: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token，格式为 "Bearer <access_token>"
+        - in: header
+          name: refresh_token
+          schema:
+            type: string
+          required: true
+          description: 刷新令牌
+      responses:
+        '200':
+          description: 成功刷新令牌
+        '401':
+          description: 令牌无效或已过期
+        '500':
+          description: 服务器内部错误

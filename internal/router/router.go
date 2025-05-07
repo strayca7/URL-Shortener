@@ -15,12 +15,6 @@ import (
 
 func Router() {
 	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		log.Info().Msg("health check")
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
 	r.GET("/health", func(c *gin.Context) {
 		log.Info().Msg("health check")
 		c.JSON(200, gin.H{
@@ -33,14 +27,17 @@ func Router() {
 		public.POST("/register", controller.Register)
 		limiter := tollbooth.NewLimiter(5, nil) // 每秒5次请求
 		public.POST("/login", tollbooth_gin.LimitHandler(limiter), controller.Login)
+		public.GET("/:code", handler.RedirectPublicCodeHandler)
+		public.GET("/shortcodes", handler.GetAllPublicShortURLsHandler)
+		public.DELETE("/short/:code", handler.DeletePublicShortURLHandler)
 	}
 
 	authGroup := r.Group("/auth")
 	authGroup.Use(middleware.JwtAuth())
 	{
 		authGroup.POST("/refresh", util.RefreshTokenHandler)
-		authGroup.POST("/shorten", handler.CreateShorterCodeHandler)
-		authGroup.POST("/short/:code", handler.RedirectHandler)
+		authGroup.POST("/short/new", handler.CreateShorterCodeHandler)
+		authGroup.POST("/:code", handler.RedirectUserCodeHandler)
 		authGroup.GET("/shortcodes", handler.GetUserShortURLsHandler)
 	}
 

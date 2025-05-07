@@ -128,7 +128,7 @@ func Register(c *gin.Context) {
 		PasswordHash: hashedPassword,
 	}
 	if err := database.CreateUser(newUser); err != nil {
-		log.Info().Err(err).Msg("Failed to create user")
+		log.Warn().Msg("Failed to create user")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register"})
 		return
 	}

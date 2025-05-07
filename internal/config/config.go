@@ -25,7 +25,7 @@ func initViper() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	// 将配置文件从 /app 修改至 /etc
-	viper.AddConfigPath("/etc")
+	viper.AddConfigPath("./")
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal().Err(err)

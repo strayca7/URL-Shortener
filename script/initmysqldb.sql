@@ -39,3 +39,17 @@ CREATE TABLE client_ips (
     INDEX idx_short_url_id (short_url_id),
     FOREIGN KEY (short_url_id) REFERENCES short_urls(id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE `short_urls` (
+    `id` int unsigned NOT NULL AUTO_INCREMENT,
+    `short_code` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `original_url` text COLLATE utf8mb4_unicode_ci NOT NULL,
+    `expires_at` datetime DEFAULT NULL,
+    `visit_count` int unsigned DEFAULT '0',
+    `created_at` datetime(3) DEFAULT NULL,
+    `updated_at` datetime(3) DEFAULT NULL,
+    `deleted_at` datetime(3) DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `idx_short_urls_short_code` (`short_code`),
+    KEY `idx_short_urls_deleted_at` (`deleted_at`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;

@@ -37,7 +37,7 @@ func TestMysql(t *testing.T) {
 	InitMysqlDB()
 	for i := range 10 {
 		// MysqlDB.Create(&User{Email: fmt.Sprintf("testd%d@example.com", i), PasswordHash: "test", UserID: fmt.Sprintf("test%d", i), })
-		mysqlDB.Create(&ShortURL{OriginalURL: fmt.Sprintf("test%d", i), ShortCode: fmt.Sprintf("url%d", i), UserID: fmt.Sprintf("test%d", i), ExpireAt: time.Now().Add(time.Hour * 24)})
+		mysqlDB.Create(&UserShortURL{OriginalURL: fmt.Sprintf("test%d", i), ShortCode: fmt.Sprintf("url%d", i), UserID: fmt.Sprintf("test%d", i), ExpireAt: time.Now().Add(time.Hour * 24)})
 	}
 	defer CloseMysqlDB()
 }
