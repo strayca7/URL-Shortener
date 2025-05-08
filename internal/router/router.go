@@ -4,7 +4,6 @@ import (
 	"url-shortener/internal/handler"
 	"url-shortener/internal/pkg/controller"
 	"url-shortener/internal/pkg/middleware"
-	"url-shortener/internal/pkg/util"
 
 	"github.com/didip/tollbooth/v7"
 	"github.com/didip/tollbooth_gin"
@@ -27,6 +26,7 @@ func Router() {
 		public.POST("/register", controller.Register)
 		limiter := tollbooth.NewLimiter(5, nil) // 每秒5次请求
 		public.POST("/login", tollbooth_gin.LimitHandler(limiter), controller.Login)
+		public.POST("/short/new", handler.CreatePublicShortURLHandler)
 		public.GET("/:code", handler.RedirectPublicCodeHandler)
 		public.GET("/shortcodes", handler.GetAllPublicShortURLsHandler)
 		public.DELETE("/short/:code", handler.DeletePublicShortURLHandler)
@@ -35,8 +35,8 @@ func Router() {
 	authGroup := r.Group("/auth")
 	authGroup.Use(middleware.JwtAuth())
 	{
-		authGroup.POST("/refresh", util.RefreshTokenHandler)
-		authGroup.POST("/short/new", handler.CreateShorterCodeHandler)
+		authGroup.POST("/refresh", handler.RefreshTokenHandler)
+		authGroup.POST("/short/new", handler.CreateUserShortURLHandler)
 		authGroup.POST("/:code", handler.RedirectUserCodeHandler)
 		authGroup.GET("/shortcodes", handler.GetUserShortURLsHandler)
 	}

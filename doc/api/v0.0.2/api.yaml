@@ -79,7 +79,15 @@ components:
         url:
           type: string
           format: uri
-          
+
+    ReturnShortURL:
+      type: object
+      properties:
+        original_url:
+          type: string
+        short_code:
+          type: string  
+    
     ShortURL:
       type: object
       properties:
@@ -162,6 +170,27 @@ paths:
         '500':
           description: 服务器内部错误
 
+  /public/short/new:
+    post:
+      summary: 创建公共短链接
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateShortURLRequest'
+      responses:
+        '201':
+          description: 成功创建短链接
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnShortURL'
+        '400':
+          description: 请求格式无效
+        '500':
+          description: 服务器内部错误
+
   /public/{code}:
     get:
       summary: 公共短链接重定向
@@ -239,6 +268,10 @@ paths:
       responses:
         '200':
           description: 成功创建短链接
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnShortURL'
         '401':
           description: 未授权
         '500':

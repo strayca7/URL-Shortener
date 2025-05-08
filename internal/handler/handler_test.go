@@ -25,7 +25,7 @@ import (
 func init() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("../../../")
+	viper.AddConfigPath("../../")
 	if err := viper.ReadInConfig(); err != nil {
 		panic("Error reading config file")
 	}
@@ -48,10 +48,10 @@ func init() {
 	log.Info().Err(errors.New("test error")).Msg("error")
 }
 
-func TestRedirect(t *testing.T) {
+func TestUser(t *testing.T) {
 	pwd, _ := os.Getwd()
 
-	log.Info().Msg("当前工作目录: " + pwd)
+	log.Debug().Msg("当前工作目录: " + pwd)
 
 	database.InitMysqlDB()
 	defer database.CloseMysqlDB()
@@ -65,7 +65,7 @@ func TestRedirect(t *testing.T) {
 	authGroup := r.Group("/auth")
 	authGroup.Use(middleware.JwtAuth())
 	{
-		authGroup.POST("/short", CreateShorterCodeHandler)
+		authGroup.POST("/short/new", CreateUserShortURLHandler)
 		authGroup.POST("/:code", RedirectUserCodeHandler)
 	}
 
@@ -116,6 +116,7 @@ func TestRedirect(t *testing.T) {
 		}
 
 		var shortURL Code
+		// 解析返回短链
 		json.Unmarshal(w.Body.Bytes(), &shortURL)
 		redirectreq, _ := http.NewRequest("POST", "/auth/short/"+shortURL.ShortURL, nil)
 		redirectreq.Header.Set("Content-Type", "application/json")
@@ -125,6 +126,87 @@ func TestRedirect(t *testing.T) {
 
 		w = httptest.NewRecorder()
 		r.ServeHTTP(w, redirectreq)
+		assert.Equal(t, http.StatusFound, w.Code)
+	})
+}
+
+func TestPublic(t *testing.T) {
+	pwd, _ := os.Getwd()
+
+	log.Debug().Msg("当前工作目录: " + pwd)
+
+	database.InitMysqlDB()
+	defer database.CloseMysqlDB()
+
+	gin.SetMode(gin.TestMode)
+
+	r := gin.Default()
+
+	public := r.Group("/public")
+	{
+
+		public.POST("/register", controller.Register)
+		public.POST("/login", controller.Login)
+		public.POST("/short/new", CreatePublicShortURLHandler)
+		public.GET("/:code", RedirectPublicCodeHandler)
+		public.GET("/shortcodes", GetAllPublicShortURLsHandler)
+	}
+
+	t.Run("Create public URL", func(t *testing.T) {
+		bodies := []string{
+			`{"long_url": "https://www.google.com"}`,
+			`{"long_url": "https://www.baidu.com"}`,
+			`{"long_url": "https://www.github.com"}`,
+			`{"long_url": "https://www.stackoverflow.com"}`,
+		}
+		for _, body := range bodies {
+			req, _ := http.NewRequest("POST", "/public/short/new", bytes.NewBufferString(body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusOK, w.Code)
+			fmt.Println(w.Body.String())
+			assert.Contains(t, w.Body.String(), "original_url")
+			assert.Contains(t, w.Body.String(), "short_url")
+		}
+	})
+
+	t.Run("Get all public short URLs", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/public/shortcodes", nil)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		fmt.Println(w.Body.String())
+	})
+
+	t.Run("Redirect public short URL", func(t *testing.T) {
+		// 创建一个新的公共短链
+		body := `{"long_url": "https://www.bilibili.com"}`
+		req, _ := http.NewRequest("POST", "/public/short/new", bytes.NewBufferString(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		fmt.Println(w.Body.String())
+		assert.Contains(t, w.Body.String(), "original_url")
+		assert.Contains(t, w.Body.String(), "short_url")
+
+		var shortURL struct {
+			ShortURL string `json:"short_url"`
+		}
+		json.Unmarshal(w.Body.Bytes(), &shortURL)
+		// 解析返回的短链
+		redirectreq, _ := http.NewRequest("GET", "/public/"+shortURL.ShortURL, nil)
+		redirectreq.Header.Set("Content-Type", "application/json")
+		w = httptest.NewRecorder()
+		r.ServeHTTP(w, redirectreq)
+
 		assert.Equal(t, http.StatusFound, w.Code)
 	})
 }

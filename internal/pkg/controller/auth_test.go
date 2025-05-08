@@ -119,7 +119,7 @@ func TestLogin(t *testing.T) {
 	authGroup := r.Group("/auth")
 	authGroup.Use(middleware.JwtAuth())
 	{
-		authGroup.POST("/shorten", handler.CreateShorterCodeHandler)
+		authGroup.POST("/short/new", handler.CreateUserShortURLHandler)
 	}
 
 	// 测试注册成功

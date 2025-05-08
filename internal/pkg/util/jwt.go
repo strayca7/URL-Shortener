@@ -139,8 +139,8 @@ func validateRefreshToken(c *gin.Context) *Claims {
 	return claims
 }
 
-// 刷新逻辑
-func RefreshTokenHandler(c *gin.Context) {
+// RefreshToken check Refresh Token's validity. If valid, generate new Access Token and Refresh Token
+func RefreshToken(c *gin.Context) {
 	// 验证 Refresh Token 有效性
 	claims := validateRefreshToken(c)
 	if claims == nil {
@@ -149,7 +149,11 @@ func RefreshTokenHandler(c *gin.Context) {
 	}
 
 	// 生成新 Token 并更新存储
-	newAccessToken, newRefreshToken, _ := GenerateTokens(claims.UserID, claims.Email)
+	newAccessToken, newRefreshToken, err := GenerateTokens(claims.UserID, claims.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate tokens"})
+		return
+	}
 	// StoreRefreshToken(claims.UserID, newRefreshToken)
 
 	c.JSON(http.StatusOK, gin.H{

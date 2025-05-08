@@ -1,3 +1,9 @@
+// Package database provides functions to interact with the MySQL, Postgres(not added) database.
+// It includes functions to create, read, update, and delete records in the database.
+// It also includes functions to initialize and close the database connection.
+//
+// You can not use this package as a public API to create, read, update, or delete records.
+// You should use the handler package instead.
 package database
 
 import (
@@ -9,11 +15,12 @@ import (
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var mysqlDB *gorm.DB
 
-// 用户表
+// User table
 type User struct {
 	gorm.Model
 	UserID       string         `gorm:"type:varchar(36);uniqueIndex;not null"` // UUID格式
@@ -22,7 +29,7 @@ type User struct {
 	ShortURLs    []UserShortURL `gorm:"foreignKey:UserID;references:UserID;onDelete:CASCADE"`
 }
 
-// 用户短链表
+// User Short URL table
 type UserShortURL struct {
 	gorm.Model
 	OriginalURL string     `gorm:"type:text;not null"`
@@ -33,14 +40,14 @@ type UserShortURL struct {
 	UserID      string     `gorm:"type:varchar(36);index;not null"` // 外键关联
 }
 
-// 客户端IP表
+// Client IP table
 type ClientIP struct {
 	gorm.Model
 	IPAddress  string `gorm:"type:varchar(45);not null"` // IPv4/IPv6地址
 	ShortURLID uint   `gorm:"index;not null"`            // 外键关联UserShortURL
 }
 
-// 公开短链表
+// Public Short URL table
 type PublicShortURL struct {
 	gorm.Model
 	ShortCode   string    `gorm:"size:10;uniqueIndex;not null"` // 短链码
@@ -57,7 +64,13 @@ const (
 	connMaxLifetime = 3 * time.Hour          // 连接最大存活时间
 )
 
-// DB 操作
+// ###### DB Oprations ######
+
+// InitMysqlDB initializes the MySQL database connection.
+//
+// Set the maximum idle connections, maximum open connections,
+// and connection maximum lifetime.
+// It also performs database migrations for the User, UserShortURL, and ClientIP tables.
 func InitMysqlDB() error {
 	log.Info().Msg("** Start init mysql db **")
 
@@ -73,7 +86,9 @@ func InitMysqlDB() error {
 	var err error
 	// 尝试连接 MySQL 数据库，最多重试 25 次
 	for range retries {
-		mysqlDB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		mysqlDB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Silent),
+		})
 		if err == nil {
 			break
 		}
@@ -114,6 +129,7 @@ func InitMysqlDB() error {
 	return err
 }
 
+// CloseMysqlDB closes the MySQL database connection.
 func CloseMysqlDB() error {
 	sqlDB, err := mysqlDB.DB()
 	if err != nil {
@@ -129,9 +145,13 @@ func CloseMysqlDB() error {
 	return nil
 }
 
-// 用户操作
+// ######## User Operations ######
 
-// 创建用户
+// CreateUser creates a new user in the database.
+//
+// This function does not judge whether the User already exists.
+// You can not use this function as a public API to create a User.
+// You should use the Register function instead.
 func CreateUser(user User) error {
 	if err := mysqlDB.Create(&user).Error; err != nil {
 		return err
@@ -139,7 +159,7 @@ func CreateUser(user User) error {
 	return nil
 }
 
-// 通过邮箱获取用户
+// GetUserByEmail retrieves a user by email from the database.
 func GetUserByEmail(email string) (User, error) {
 	var user User
 	if err := mysqlDB.Where("email = ?", email).First(&user).Error; err != nil {
@@ -148,7 +168,7 @@ func GetUserByEmail(email string) (User, error) {
 	return user, nil
 }
 
-// 通过短码获取原始链接
+// GetOriginalURLByShortCode retrieves the User original URL by short code.
 func GetOriginalURLByShortCode(shortCode string) (string, error) {
 	var shortURL UserShortURL
 	if err := mysqlDB.Where("short_code = ?", shortCode).First(&shortURL).Error; err != nil {
@@ -163,10 +183,10 @@ func GetOriginalURLByShortCode(shortCode string) (string, error) {
 	return shortURL.OriginalURL, nil
 }
 
-// 通过短码获取短链接信息
+// GetURLByShortCode retrieves the User short URL by short code.
 //
-// 这里返回的是短链接的所有信息，包括原始链接、短码、过期时间等
-func GetURLByShortCode(shortCode string) (UserShortURL, error) {
+// If the short code expires, return an error "short URL has expired".
+func GetUserShortURLByCode(shortCode string) (UserShortURL, error) {
 	var shortURL UserShortURL
 	if err := mysqlDB.Where("short_code = ?", shortCode).First(&shortURL).Error; err != nil {
 		log.Debug().Msg("User short URL not found")
@@ -181,7 +201,7 @@ func GetURLByShortCode(shortCode string) (UserShortURL, error) {
 	return shortURL, nil
 }
 
-// 创建用户短链
+// CreateUserShortURL creates a new short URL for the user.
 func CreateUserShortURL(short UserShortURL, clientIP string) error {
 	if err := mysqlDB.Create(&short).Error; err != nil {
 		log.Debug().Msg("Failed to save short URL")
@@ -194,7 +214,9 @@ func CreateUserShortURL(short UserShortURL, clientIP string) error {
 	return nil
 }
 
-// 记录用户访问信息
+// LogUserAccess increments user access count and updates the client IP table.
+//
+// It will search for the short code in the database before updating the access count.
 func LogUserAccess(shortCode string, clientIP string) error {
 	var (
 		userShortURL UserShortURL
@@ -223,7 +245,9 @@ func LogUserAccess(shortCode string, clientIP string) error {
 	return nil
 }
 
-
+// SaveClientIP saves the client IP address to the database.
+//
+// You can not use this function as a public API to save the client IP.
 func SaveClientIP(shortURLID uint, clientIP string) error {
 	var err error
 	if err = mysqlDB.Create(&ClientIP{IPAddress: clientIP, ShortURLID: shortURLID}).Error; err != nil {
@@ -242,13 +266,15 @@ func GetUserShortURLsByUserID(userID string) ([]UserShortURL, error) {
 	return shortURLs, nil
 }
 
-// 公共操作
+// ###### Public Operations ######
 
-// 记录公开短链访问信息
+// LogPublicAccess logs public access count.
+//
+// If the short code exists, increment the access count by 1.
 func LogPublicAccess(shortcode string) error {
 	var (
 		publicShortURL PublicShortURL
-		err           error
+		err            error
 	)
 
 	// 查询短链记录
@@ -268,7 +294,11 @@ func LogPublicAccess(shortcode string) error {
 	return nil
 }
 
-// 创建公开短链
+// CreatePublicShortURL creates a new public short URL.
+//
+// This function does not judge whether the short code already exists.
+// You can not use this function as a public API to create a short URL.
+// You should use the PublicShortCodeCreater function instead.
 func CreatePublicShortURL(short PublicShortURL) error {
 	if err := mysqlDB.Create(&short).Error; err != nil {
 		log.Debug().Msg("Failed to save public short URL")
@@ -277,7 +307,7 @@ func CreatePublicShortURL(short PublicShortURL) error {
 	return nil
 }
 
-// 通过短码获取公开短链信息
+// Get a public short URL by short code.
 func GetPublicShortURLByShortCode(shortCode string) (string, error) {
 	var publicShortURL PublicShortURL
 	if err := mysqlDB.Where("short_code = ?", shortCode).First(&publicShortURL).Error; err != nil {
@@ -293,7 +323,7 @@ func GetPublicShortURLByShortCode(shortCode string) (string, error) {
 	return publicShortURL.OriginalURL, nil
 }
 
-// 获取所有公开短链
+// Get all public short URLs.
 func GetAllPublicShortURLs() ([]PublicShortURL, error) {
 	var publicShortURLs []PublicShortURL
 	if err := mysqlDB.Find(&publicShortURLs).Error; err != nil {
@@ -303,7 +333,11 @@ func GetAllPublicShortURLs() ([]PublicShortURL, error) {
 	return publicShortURLs, nil
 }
 
-// 通过短码删除公开短链
+// Delete public short URL by short code.
+//
+// If the short code does not exist, return an error.
+//
+// If the short code exists, delete it from the database.
 func DeletePublicShortURLByShortCode(shortCode string) error {
 	var publicShortURL PublicShortURL
 	if err := mysqlDB.Where("short_code = ?", shortCode).First(&publicShortURL).Error; err != nil {
