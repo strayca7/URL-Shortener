@@ -1,7 +1,7 @@
 # URL Shortener API 文档
 
 ## 基本信息
-- 版本：1.0.0
+- 版本：0.0.1
 - 基础URL：`http://localhost:8080`
 
 ## 认证方式
