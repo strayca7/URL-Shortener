@@ -1,10 +1,30 @@
-.git
-.vscode
+.git/
+.gitignore
+.svn/
+
+node_modules/
+vendor/
+__pycache__/
+*.egg-info/
 
 *.log
-*.md
-*.sql
+*.tmp
+*.swp
+*.swo
+.DS_Store
 
-archive/
-deploy/
-pipeline/
+.env
+*.env
+
+dist/
+build/
+*.exe
+*.out
+*.test
+
+.idea/
+.vscode/
+*.code-workspace
+
+README.md
+LICENSE
