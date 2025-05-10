@@ -4,6 +4,8 @@
 //
 // You can not use this package as a public API to create, read, update, or delete records.
 // You should use the handler package instead.
+//
+// Business log in this package is Debug level. Warning level log will be used in the upper layer.
 package database
 
 import (
@@ -256,7 +258,7 @@ func SaveClientIP(shortURLID uint, clientIP string) error {
 	return nil
 }
 
-// 通过用户ID获取用户所有短链
+// GetUserShortURLsByUserID retrieves all short URLs for a user by user ID.
 func GetUserShortURLsByUserID(userID string) ([]UserShortURL, error) {
 	var shortURLs []UserShortURL
 	if err := mysqlDB.Where("user_id = ?", userID).Find(&shortURLs).Error; err != nil {
@@ -335,14 +337,17 @@ func GetAllPublicShortURLs() ([]PublicShortURL, error) {
 
 // Delete public short URL by short code.
 //
-// If the short code does not exist, return an error.
-//
-// If the short code exists, delete it from the database.
+// If the short code exists, gorm will not delete it from the database, then it will perform a soft delete instead and set the deleted_at field to the current time.
 func DeletePublicShortURLByShortCode(shortCode string) error {
 	var publicShortURL PublicShortURL
 	if err := mysqlDB.Where("short_code = ?", shortCode).First(&publicShortURL).Error; err != nil {
-		log.Debug().Msg("Public short URL not found")
-		return err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Debug().Msg("Public short URL not found")
+			return err
+		} else {
+			log.Debug().Msg("Failed to find public short URL")
+			return err
+		}
 	}
 
 	if err := mysqlDB.Delete(&publicShortURL).Error; err != nil {

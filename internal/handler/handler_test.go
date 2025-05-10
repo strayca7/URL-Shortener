@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-	_ "url-shortener/internal/config"
 	"url-shortener/internal/pkg/controller"
 	"url-shortener/internal/pkg/database"
 	"url-shortener/internal/pkg/middleware"
@@ -208,5 +207,36 @@ func TestPublic(t *testing.T) {
 		r.ServeHTTP(w, redirectreq)
 
 		assert.Equal(t, http.StatusFound, w.Code)
+	})
+}
+
+func TestDelete(t *testing.T) {
+	pwd, _ := os.Getwd()
+
+	log.Debug().Msg("当前工作目录: " + pwd)
+
+	database.InitMysqlDB()
+	defer database.CloseMysqlDB()
+
+	gin.SetMode(gin.TestMode)
+
+	r := gin.Default()
+	publicGroup := r.Group("/public")
+	{
+		publicGroup.DELETE("/short/:code", DeletePublicShortURLHandler)
+	}
+
+	t.Run("Delete short URL", func(t *testing.T) {
+		var shortURL struct {
+			Code string `json:"code"`
+		}
+		shortURL.Code = "abc123"
+		fmt.Println(shortURL.Code)
+		deleteReq, _ := http.NewRequest("DELETE", "/public/short/"+shortURL.Code, nil)
+		deleteReq.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, deleteReq)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 }

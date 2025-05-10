@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"sync"
 
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
 
 // CreateUserShortURLHandler is an API for creating short URL.
@@ -191,11 +193,16 @@ func CreatePublicShortURLHandler(c *gin.Context) {
 func DeletePublicShortURLHandler(c *gin.Context) {
 	shortCode := c.Param("code")
 
-	err := database.DeletePublicShortURLByShortCode(shortCode)
-	if err != nil {
-		log.Warn().Str("shortCode", shortCode).Msg("Failed to delete public short URL")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete public short URL"})
-		return
+	if err := database.DeletePublicShortURLByShortCode(shortCode); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Warn().Str("shortCode", shortCode).Msg("Public short URL not found")
+			c.JSON(http.StatusNotFound, gin.H{"error": "Public short URL not found"})
+			return
+		} else {
+			log.Warn().Str("shortCode", shortCode).Msg("Failed to delete public short URL")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete public short URL"})
+			return
+		}
 	}
 
 	log.Info().Str("shortCode", shortCode).Msg("Deleted public short URL")
