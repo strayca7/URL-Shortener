@@ -1,6 +1,6 @@
 module url-shortener
 
-go 1.24.0
+go 1.24.3
 
 require (
 	github.com/didip/tollbooth/v7 v7.0.2
