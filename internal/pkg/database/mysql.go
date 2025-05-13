@@ -117,13 +117,35 @@ func InitMysqlDB() error {
 	}
 	log.Info().Msg("Successfully connected to MySQL")
 
-	// TODO: 使用 job 或者 initContainer 来执行 AutoMigerate，避免每次启动都执行
-	if err := mysqlDB.AutoMigrate(&User{}, &UserShortURL{}, &ClientIP{}); err != nil {
-		log.Err(err).Msg("Failed to migrate MySQL")
+	if !mysqlDB.Migrator().HasTable(&User{}) || !mysqlDB.Migrator().HasTable(&UserShortURL{}) || !mysqlDB.Migrator().HasTable(&ClientIP{}) {
+		log.Info().Msg("MySQL tables do not exist, starting migration")
+		if err := mysqlDB.AutoMigrate(&User{}, &UserShortURL{}, &ClientIP{}); err != nil {
+			log.Err(err).Msg("Failed to migrate MySQL")
+		}
+	} else {
+		log.Info().Msg("MySQL tables already exist, skipping migration")
 	}
-	if err := mysqlDB.AutoMigrate(&PublicShortURL{}); err != nil {
-		log.Err(err).Msg("Failed to migrate PublicShortURL")
+
+	if !mysqlDB.Migrator().HasTable(&PublicShortURL{}) {
+		log.Info().Msg("MySQL public tables do not exist, starting migration")
+		if err := mysqlDB.AutoMigrate(&PublicShortURL{}); err != nil {
+			log.Err(err).Msg("Failed to migrate PublicShortURL")
+		}
+	} else {
+		log.Info().Msg("MySQL public tables already exist, skipping migration")
 	}
+
+	testMode := viper.GetBool("test_mode")
+	if testMode {
+		log.Debug().Msg("Test mode enabled, check tables difference and force migration")
+		if err := mysqlDB.AutoMigrate(&User{}, &UserShortURL{}, &ClientIP{}); err != nil {
+			log.Err(err).Msg("Failed to migrate MySQL")
+		}
+		if err := mysqlDB.AutoMigrate(&PublicShortURL{}); err != nil {
+			log.Err(err).Msg("Failed to migrate PublicShortURL")
+		}
+	}
+
 	log.Info().Msg("MySQL migration completed")
 
 	log.Info().Msg("** Init mysql db finished! **")
