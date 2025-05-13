@@ -1,3 +1,5 @@
+test_mode: true
+
 # Config.yaml 不要集成在镜像中，应该用 ConfigMap 挂载到容器 /app/config.yaml 目录下
 # Do not integrate Config.yaml into the image, you should mount ConfigMap to the container /app/config.yaml directory
 jwt_secret: "secret"
