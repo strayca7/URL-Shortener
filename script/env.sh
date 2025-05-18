@@ -1,0 +1,40 @@
+#!/bin/bash
+
+shorten_env_vars=(
+    MYSQL_USER
+    MYSQL_PASSWORD
+    MYSQL_HOST
+    MYSQL_PORT
+    MYSQL_DATABASE
+    PGSQL_HOST
+    PGSQL_PORT
+    PGSQL_USER
+    PGSQL_PASSWORD
+    PGSQL_DATABASE
+    PGSQL_SSLMODE
+    PGSQL_TIMEZONE
+    REDIS_HOST
+    REDIS_PORT
+    REDIS_PASSWORD
+    REDIS_DB
+    REDIS_URL
+)
+
+export MYSQL_USER="${MYSQL_USER:-root}"
+export MYSQL_PASSWORD="${MYSQL_PASSWORD:-famcat777}"
+export MYSQL_HOST="${MYSQL_HOST:-localhost}"
+export MYSQL_PORT="${MYSQL_PORT:-3306}"
+export MYSQL_DATABASE="${MYSQL_DATABASE:-miniurl}"
+
+export PGSQL_HOST="${PGSQL_HOST:-localhost}"
+export PGSQL_PORT="${PGSQL_PORT:-5432}"
+export PGSQL_USER="${PGSQL_USER:-postgres}"
+export PGSQL_PASSWORD="${PGSQL_PASSWORD:-famcat777}"
+export PGSQL_DATABASE="${PGSQL_DATABASE:-miniurl}"
+export PGSQL_SSLMODE="${PGSQL_SSLMODE:-disable}"
+export PGSQL_TIMEZONE="${PGSQL_TIMEZONE:-Asia/Shanghai}"
+
+export REDIS_HOST="${REDIS_HOST:-localhost}"
+export REDIS_PORT="${REDIS_PORT:-6379}"
+export REDIS_PASSWORD="${REDIS_PASSWORD:-famcat777}"
+export REDIS_DB="${REDIS_DB:-0}"
