@@ -42,6 +42,18 @@ type UserShortURL struct {
 	UserID      string     `gorm:"type:varchar(36);index;not null"` // 外键关联
 }
 
+func (u UserShortURL) GetOriginalURL() string {
+	return u.OriginalURL
+}
+
+func (u UserShortURL) GetShortCode() string {
+	return u.ShortCode
+}
+
+func (u UserShortURL) GetExpireAt() time.Time {
+	return u.ExpireAt
+}
+
 // Client IP table
 type ClientIP struct {
 	gorm.Model
@@ -58,6 +70,18 @@ type PublicShortURL struct {
 	AccessCount uint      `gorm:"default:0"` // 访问计数
 }
 
+func (p PublicShortURL) GetOriginalURL() string {
+	return p.OriginalURL
+}
+
+func (p PublicShortURL) GetShortCode() string {
+	return p.ShortCode
+}
+
+func (p PublicShortURL) GetExpireAt() time.Time {
+	return p.ExpiresAt
+}
+
 const (
 	retries         = 25                     // 最大重试次数
 	maxRetryDelay   = 100 * time.Millisecond // 最大重试延迟
@@ -65,6 +89,12 @@ const (
 	maxOpenConns    = 100                    // 最大打开连接数
 	connMaxLifetime = 3 * time.Hour          // 连接最大存活时间
 )
+
+type ShowCoder interface {
+	GetOriginalURL() string
+	GetShortCode() string
+	GetExpireAt() time.Time
+}
 
 // ###### DB Oprations ######
 
@@ -238,6 +268,14 @@ func CreateUserShortURL(short UserShortURL, clientIP string) error {
 	return nil
 }
 
+func ShowCodes(s ShowCoder) (string, string) {
+	if s.GetExpireAt().Before(time.Now()) {
+		log.Debug().Msg("Short URL has expired")
+		return "", ""
+	}
+	return s.GetOriginalURL(), s.GetShortCode()
+}
+
 // LogUserAccess increments user access count and updates the client IP table.
 //
 // It will search for the short code in the database before updating the access count.
@@ -280,14 +318,22 @@ func SaveClientIP(shortURLID uint, clientIP string) error {
 	return nil
 }
 
-// GetUserShortURLsByUserID retrieves all short URLs for a user by user ID.
-func GetUserShortURLsByUserID(userID string) ([]UserShortURL, error) {
+// GetUserShortURLsByUserID retrieves all original URLs and short codes
+// for a user by user ID. It returns a map of short codes to original URLs.
+func GetUserShortURLsByUserID(userID string) (map[string]string, error) {
 	var shortURLs []UserShortURL
 	if err := mysqlDB.Where("user_id = ?", userID).Find(&shortURLs).Error; err != nil {
 		log.Debug().Msg("Failed to get short URLs for userID")
 		return nil, err
 	}
-	return shortURLs, nil
+	codes := make(map[string]string)
+	for _, shortURL := range shortURLs {
+		originalURL, shortCode := ShowCodes(shortURL)
+		if originalURL != "" && shortCode != "" {
+			codes[shortCode] = originalURL
+		}
+	}
+	return codes, nil
 }
 
 // ###### Public Operations ######
@@ -348,13 +394,20 @@ func GetPublicShortURLByShortCode(shortCode string) (string, error) {
 }
 
 // Get all public short URLs.
-func GetAllPublicShortURLs() ([]PublicShortURL, error) {
+func GetAllPublicShortURLs() (map[string]string, error) {
 	var publicShortURLs []PublicShortURL
 	if err := mysqlDB.Find(&publicShortURLs).Error; err != nil {
 		log.Debug().Msg("Failed to get all public short URLs")
 		return nil, err
 	}
-	return publicShortURLs, nil
+	codes := make(map[string]string)
+	for _, publicShortURL := range publicShortURLs {
+		originalURL, shortCode := ShowCodes(publicShortURL)
+		if originalURL != "" && shortCode != "" {
+			codes[shortCode] = originalURL
+		}
+	}
+	return codes, nil
 }
 
 // Delete public short URL by short code.

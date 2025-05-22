@@ -64,8 +64,8 @@ func TestUser(t *testing.T) {
 	authGroup := r.Group("/auth")
 	authGroup.Use(middleware.JwtAuth())
 	{
-		authGroup.POST("/short/new", CreateUserShortURLHandler)
-		authGroup.POST("/:code", RedirectUserCodeHandler)
+		authGroup.POST("/short/new", CreateUserShortURLHandle)
+		authGroup.POST("/:code", RedirectUserCodeHandle)
 	}
 
 	t.Run("Successful Registration", func(t *testing.T) {
@@ -146,9 +146,9 @@ func TestPublic(t *testing.T) {
 
 		public.POST("/register", controller.Register)
 		public.POST("/login", controller.Login)
-		public.POST("/short/new", CreatePublicShortURLHandler)
-		public.GET("/:code", RedirectPublicCodeHandler)
-		public.GET("/shortcodes", GetAllPublicShortURLsHandler)
+		public.POST("/short/new", CreatePublicShortURLHandle)
+		public.GET("/:code", RedirectPublicCodeHandle)
+		public.GET("/shortcodes", GetAllPublicShortURLsHandle)
 	}
 
 	t.Run("Create public URL", func(t *testing.T) {
@@ -223,7 +223,7 @@ func TestDelete(t *testing.T) {
 	r := gin.Default()
 	publicGroup := r.Group("/public")
 	{
-		publicGroup.DELETE("/short/:code", DeletePublicShortURLHandler)
+		publicGroup.DELETE("/short/:code", DeletePublicShortURLHandle)
 	}
 
 	t.Run("Delete short URL", func(t *testing.T) {

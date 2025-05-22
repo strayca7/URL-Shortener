@@ -1,13 +1,11 @@
 package util
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
-	"url-shortener/internal/pkg/cache"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -118,14 +116,14 @@ func ParseRefreshToken(tokenString string) (*jwt.RegisteredClaims, error) {
 }
 
 // 未启用，使用 Redis 存储 Refresh Token 白名单
-func StoreRefreshToken(userID string, refreshToken string) error {
-	return cache.Rdb.Set(
-		context.Background(),
-		fmt.Sprintf("refresh:%s", userID),
-		refreshToken,
-		RefreshTokenExpire,
-	).Err()
-}
+// func StoreRefreshToken(userID string, refreshToken string) error {
+// 	return cache.Rdb.Set(
+// 		context.Background(),
+// 		fmt.Sprintf("refresh:%s", userID),
+// 		refreshToken,
+// 		RefreshTokenExpire,
+// 	).Err()
+// }
 
 // validateRefreshToken 验证 Refresh Token 并返回声明
 func validateRefreshToken(c *gin.Context) *Claims {

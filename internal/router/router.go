@@ -26,19 +26,19 @@ func Router() {
 		public.POST("/register", controller.Register)
 		limiter := tollbooth.NewLimiter(5, nil) // 每秒5次请求
 		public.POST("/login", tollbooth_gin.LimitHandler(limiter), controller.Login)
-		public.POST("/short/new", handler.CreatePublicShortURLHandler)
-		public.GET("/:code", handler.RedirectPublicCodeHandler)
-		public.GET("/shortcodes", handler.GetAllPublicShortURLsHandler)
-		public.DELETE("/short/:code", handler.DeletePublicShortURLHandler)
+		public.POST("/short/new", handler.CreatePublicShortURLHandle)
+		public.GET("/:code", handler.RedirectPublicCodeHandle)
+		public.GET("/shortcodes", handler.GetAllPublicShortURLsHandle)
+		public.DELETE("/short/:code", handler.DeletePublicShortURLHandle)
 	}
 
 	authGroup := r.Group("/auth")
 	authGroup.Use(middleware.JwtAuth())
 	{
-		authGroup.POST("/refresh", handler.RefreshTokenHandler)
-		authGroup.POST("/short/new", handler.CreateUserShortURLHandler)
-		authGroup.POST("/:code", handler.RedirectUserCodeHandler)
-		authGroup.GET("/shortcodes", handler.GetUserShortURLsHandler)
+		authGroup.POST("/refresh", handler.RefreshTokenHandle)
+		authGroup.POST("/short/new", handler.CreateUserShortURLHandle)
+		authGroup.POST("/:code", handler.RedirectUserCodeHandle)
+		authGroup.GET("/shortcodes", handler.GetUserShortURLsHandle)
 	}
 
 	if err := r.Run(":8080"); err != nil {
