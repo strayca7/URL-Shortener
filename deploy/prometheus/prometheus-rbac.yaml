@@ -30,3 +30,4 @@ subjects:
 - kind: ServiceAccount
   name: prometheus
   namespace: devops
+  apiGroup: ""

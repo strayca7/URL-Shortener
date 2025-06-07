@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -42,7 +43,7 @@ func initLogger() {
 	// consoleLogger := zerolog.New(consoleWriter).With().Timestamp().Logger()
 
 	fileWriter := &lumberjack.Logger{
-		Filename:   "./log/app.log",
+		Filename:   "./log/app_" + time.Now().String() + ".log",
 		MaxSize:    100,
 		MaxBackups: 3,
 		MaxAge:     30,

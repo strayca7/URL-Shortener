@@ -2,9 +2,11 @@ package main
 
 import (
 	"os"
-	_ "url-shortener/internal/config"
+	_ "url-shortener/config"
 	"url-shortener/internal/pkg/database"
 	"url-shortener/internal/router"
+	etcdv3 "url-shortener/pkg/etcd/v3"
+	rbacv1 "url-shortener/pkg/rbac/v1"
 
 	"github.com/rs/zerolog/log"
 )
@@ -13,17 +15,15 @@ func main() {
 	wd, _ := os.Getwd()
 	log.Info().Str("wd", wd).Msg("** Starting server **")
 
-	if err := database.InitMysqlDB(); err != nil {
-		log.Fatal().Msg("Failed to connect to MySQL")
-		return
-	}
-	defer func() {
-		if err := database.CloseMysqlDB(); err != nil {
-			log.Err(err).Msg("Error closing MySQL connection")
-		}
-	}()
+	database.InitMysqlDB()
+	defer database.CloseMysqlDB()
 
-	router.Router()
+	etcdv3.InitEtcd()
+	defer etcdv3.CloseEtcd()
+
+	rbac := rbacv1.NewRBACSystem(etcdv3.EtcdClient)
+
+	router.Router(rbac)
 	// cache.InitRedis()
 	// defer cache.CloseRedis()
 }

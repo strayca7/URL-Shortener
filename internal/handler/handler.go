@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateUserShortURLHandle is an API for creating short URL.
+// HandleCreateUserShortURL is an API for creating short URL.
 // Requires Authorization and refresh_token in the HTTP header,
 // and JSON in the HTTP body.
 //
@@ -34,15 +34,15 @@ import (
 //	}
 //
 // The short URL will expire in 90 days. This is default expiration time.
-func CreateUserShortURLHandle(c *gin.Context) {
+func HandleCreateUserShortURL(c *gin.Context) {
 	service.UserShortCodeCreater(c)
 }
 
-// RedirectUserCodeHandle handles redirection from a short URL to the original URL.
+// HandleRedirectUserCode handles redirection from a short URL to the original URL.
 // Requires Authorization and refresh_token in the HTTP header.
 //
 // Send http request, for example: POST http://localhost:8080/auth/abc123
-func RedirectUserCodeHandle(c *gin.Context) {
+func HandleRedirectUserCode(c *gin.Context) {
 	shortCode := c.Param("code")
 
 	originalURL, err := database.GetOriginalURLByShortCode(shortCode)
@@ -77,7 +77,7 @@ func RedirectUserCodeHandle(c *gin.Context) {
 // Public short URL redirection handle.
 // This handle is used to redirect public short URLs.
 // It does not require any authentication or authorization.
-func RedirectPublicCodeHandle(c *gin.Context) {
+func HandleRedirectPublicCode(c *gin.Context) {
 	shortCode := c.Param("code")
 
 	originalURL, err := database.GetPublicShortURLByShortCode(shortCode)
@@ -105,11 +105,11 @@ func RedirectPublicCodeHandle(c *gin.Context) {
 	c.Redirect(http.StatusFound, originalURL)
 }
 
-// GetUserShortURLsHandle retrieves all short URLs created by the user.
+// HandleGetUserShortURLs retrieves all short URLs created by the user.
 // Requires Authorization and refresh_token in the HTTP header.
 //
 // It returns a list of all short URLs that owned by the user in JSON format.
-func GetUserShortURLsHandle(c *gin.Context) {
+func HandleGetUserShortURLs(c *gin.Context) {
 	userID, exist := c.Get("user_id")
 	if !exist {
 		log.Warn().Msg("user ID not found")
@@ -139,11 +139,11 @@ func GetUserShortURLsHandle(c *gin.Context) {
 	c.JSON(http.StatusOK, shortURLs)
 }
 
-// GetAllPublicShortURLsHandle retrieves all public short URLs.
+// HandleGetAllPublicShortURLs retrieves all public short URLs.
 // It does not require any authentication or authorization.
 //
 // It returns a list of public short URLs that are available to all users in JSON format.
-func GetAllPublicShortURLsHandle(c *gin.Context) {
+func HandleGetAllPublicShortURLs(c *gin.Context) {
 	publicShortURLs, err := database.GetAllPublicShortURLs()
 	if err != nil {
 		log.Warn().Msg("Failed to get all public short URLs")
@@ -159,7 +159,7 @@ func GetAllPublicShortURLsHandle(c *gin.Context) {
 	c.JSON(http.StatusOK, publicShortURLs)
 }
 
-// CreatePublicShortURLHandle is an API for creating public short URL.
+// HandleCreatePublicShortURL is an API for creating public short URL.
 // It does not require any authentication or authorization.
 //
 // Send http request, for example: POST http://localhost:8080/public/short/new
@@ -178,11 +178,11 @@ func GetAllPublicShortURLsHandle(c *gin.Context) {
 //	}
 //
 // The short URL will expire in 90 days. This is default expiration time.
-func CreatePublicShortURLHandle(c *gin.Context) {
+func HandleCreatePublicShortURL(c *gin.Context) {
 	service.PublicShortCodeCreater(c)
 }
 
-// DeletePublicShortURLHandle is an API for deleting a public short URL.
+// HandleDeletePublicShortURL is an API for deleting a public short URL.
 // It does not require any authentication or authorization.
 // Send http request, for example:
 //
@@ -190,7 +190,7 @@ func CreatePublicShortURLHandle(c *gin.Context) {
 //
 // It deletes the public short URL with the given short code.
 // It returns a success message in JSON format.
-func DeletePublicShortURLHandle(c *gin.Context) {
+func HandleDeletePublicShortURL(c *gin.Context) {
 	shortCode := c.Param("code")
 
 	if err := database.DeletePublicShortURLByShortCode(shortCode); err != nil {
@@ -209,7 +209,7 @@ func DeletePublicShortURLHandle(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Public short URL deleted successfully"})
 }
 
-// RefreshTokenHandle is an API for refreshing the access token.
+// HandleRefreshToken is an API for refreshing the access token.
 // It requires Authorization and refresh_token in the HTTP header.
 // Send http request, for example: POST http://localhost:8080/auth/refresh
 //
@@ -219,6 +219,6 @@ func DeletePublicShortURLHandle(c *gin.Context) {
 //	    "access_token": "new_access_token",
 //	    "refresh_token": "new_refresh_token"
 //	}
-func RefreshTokenHandle(c *gin.Context) {
+func HandleRefreshToken(c *gin.Context) {
 	util.RefreshToken(c)
 }

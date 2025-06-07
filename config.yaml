@@ -15,6 +15,10 @@ mysql:
   port: "3306"
   database: "miniurl"
 
+etcd:
+  host: "localhost"
+  port: "6379"
+
 pgsql:
   host: "localhost"
   port: "5432"
