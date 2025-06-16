@@ -5,8 +5,8 @@ import (
 	_ "url-shortener/config"
 	"url-shortener/internal/pkg/database"
 	"url-shortener/internal/router"
+	rbacv1 "url-shortener/pkg/apis/rbac/v1"
 	etcdv3 "url-shortener/pkg/etcd/v3"
-	rbacv1 "url-shortener/pkg/rbac/v1"
 
 	"github.com/rs/zerolog/log"
 )
@@ -16,13 +16,21 @@ func main() {
 	log.Info().Str("wd", wd).Msg("** Starting server **")
 
 	database.InitMysqlDB()
-	defer database.CloseMysqlDB()
-
 	etcdv3.InitEtcd()
-	defer etcdv3.CloseEtcd()
+
+	defer func() {
+		var err error
+		if err = etcdv3.CloseEtcd(); err != nil {
+			log.Err(err).Msg("Failed to close RBAC system")
+		}
+		if err = database.CloseMysqlDB(); err != nil {
+			log.Err(err).Msg("Failed to close database")
+		}
+		log.Info().Msg("Server stopped gracefully")
+	}()
 
 	rbac := rbacv1.NewRBACSystem(etcdv3.EtcdClient)
-
+	rbac.InitRegister()
 	router.Router(rbac)
 	// cache.InitRedis()
 	// defer cache.CloseRedis()

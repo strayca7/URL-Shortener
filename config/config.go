@@ -10,6 +10,10 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var (
+	TestMode = viper.GetBool("test_mode")
+)
+
 func init() {
 	// // 注意运行时文件目录，确保每次启动都从根目录运行
 	// if err := os.Chdir("./"); err != nil {

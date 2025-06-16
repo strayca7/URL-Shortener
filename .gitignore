@@ -1,10 +1,10 @@
 /archive
+/bin
 /pipeline
 /web
 
 .idea
 .vscode
-.git
 .DS_Store
 
 *.log

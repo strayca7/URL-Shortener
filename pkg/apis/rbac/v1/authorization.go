@@ -2,7 +2,7 @@ package v1
 
 import (
 	"net/http"
-	"url-shortener/pkg/rbac"
+	"url-shortener/pkg/apis/rbac"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,7 +21,7 @@ type APIResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
-func successResponse(c *gin.Context, status int, message string, data any) {
+func SuccessResponse(c *gin.Context, status int, message string, data any) {
 	c.JSON(status, APIResponse{
 		Success: true,
 		Message: message,
@@ -29,7 +29,7 @@ func successResponse(c *gin.Context, status int, message string, data any) {
 	})
 }
 
-func errorResponse(c *gin.Context, status int, message string, err error) {
+func ErrorResponse(c *gin.Context, status int, message string, err error) {
 	c.JSON(status, APIResponse{
 		Success: false,
 		Message: message,
@@ -40,21 +40,21 @@ func errorResponse(c *gin.Context, status int, message string, err error) {
 func (r *RBACSystem) HandleRBACAuthCheck(c *gin.Context) {
 	var authReq AuthRequest
 	if err := c.ShouldBindJSON(&authReq); err != nil {
-		errorResponse(c, http.StatusBadRequest, "invalid request body", err)
+		ErrorResponse(c, http.StatusBadRequest, "invalid request body", err)
 		return
 	}
 
 	allowed, err := r.Authorize(authReq)
 	if err != nil {
-		errorResponse(c, http.StatusInternalServerError, "authorization failed", err)
+		ErrorResponse(c, http.StatusInternalServerError, "authorization failed", err)
 		return
 	}
 
 	result := map[string]bool{"authorized": allowed}
 	if allowed {
-		successResponse(c, http.StatusOK, "authorization successful", result)
+		SuccessResponse(c, http.StatusOK, "authorization successful", result)
 	} else {
-		errorResponse(c, http.StatusForbidden, "authorization failed", nil)
+		ErrorResponse(c, http.StatusForbidden, "authorization failed", nil)
 	}
 }
 
@@ -79,7 +79,7 @@ func (r *RBACSystem) Authorize(authReq AuthRequest) (bool, error) {
 func (r *RBACSystem) findRolesForUser(name, namespace string) []rbac.Role {
 	var roles []rbac.Role
 
-	for _, rolebinding := range r.rolebindings {
+	for _, rolebinding := range r.roleBindings {
 		if rolebinding.Namespace != namespace {
 			continue
 		}
@@ -110,7 +110,7 @@ func (r *RBACSystem) roleHasPermission(role rbac.Role, verb, resource string) bo
 }
 
 func ruleMatches(rule rbac.PolicyRule, verb, resource string) bool {
-	if contains(rule.Verbs, verb) && contains(rule.Resources, resource){
+	if contains(rule.Verbs, verb) && contains(rule.Resources, resource) {
 		return true
 	}
 
