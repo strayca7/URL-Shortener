@@ -11,12 +11,16 @@ mysql:
   # Here you need to modify your database address, "127.0.0.1" or "mysql.devops.svc.cluster.local"
   # 如果你在 docker 中运行 shortener，host 需要改成 "host.docker.internal"，再用 -v ./config.yaml:/app/config.yaml 挂载。
   # If your shortener is running in docker container, host need to change to "host.docker.internal", then use -v ./config.yaml:/app/config.yaml mount.
-  host: "localhost"
+  host: "127.0.0.1"
   port: "3306"
   database: "miniurl"
 
+etcd:
+  host: "127.0.0.1"
+  port: "2379"
+
 pgsql:
-  host: "localhost"
+  host: "127.0.0.1"
   port: "5432"
   user: "postgres"
   password: "your_password"
@@ -25,7 +29,7 @@ pgsql:
   timezone: "Asia/Shanghai"
 
 redis:
-  host: "localhost"
+  host: "127.0.0.1"
   prot: "6379"
   password: "your_password"
   db: "0"

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"url-shortener/config"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -139,6 +140,10 @@ func validateRefreshToken(c *gin.Context) *Claims {
 
 // RefreshToken check Refresh Token's validity. If valid, generate new Access Token and Refresh Token
 func RefreshToken(c *gin.Context) {
+	if config.TestMode {
+		c.JSON(http.StatusForbidden, gin.H{"error": "test mode RefreshToken API is forbidden"})
+	}
+
 	// 验证 Refresh Token 有效性
 	claims := validateRefreshToken(c)
 	if claims == nil {

@@ -8,11 +8,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// JwtAuth 中间件，用于 JWT 认证集成自动续期。
-//
 // JwtAuth middleware, used for JWT authentication and auto-renewal.
-func JwtAuth() gin.HandlerFunc {
+func JwtAuth(testMode bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if testMode {
+			c.Next()
+			return
+		}
+
 		accessToken := c.GetHeader("Authorization")
 		refreshToken := c.GetHeader("refresh_token")
 

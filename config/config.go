@@ -2,11 +2,16 @@ package config
 
 import (
 	"os"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"gopkg.in/natefinch/lumberjack.v2"
+)
+
+var (
+	TestMode bool
 )
 
 func init() {
@@ -17,6 +22,8 @@ func init() {
 
 	initLogger()
 	initViper()
+
+	TestMode = viper.GetBool("test_mode")
 
 	log.Debug().Msg("Init finish")
 }
@@ -42,7 +49,7 @@ func initLogger() {
 	// consoleLogger := zerolog.New(consoleWriter).With().Timestamp().Logger()
 
 	fileWriter := &lumberjack.Logger{
-		Filename:   "./log/app.log",
+		Filename:   "./log/app_" + time.Now().String() + ".log",
 		MaxSize:    100,
 		MaxBackups: 3,
 		MaxAge:     30,

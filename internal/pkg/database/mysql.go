@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"url-shortener/config"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -22,62 +23,21 @@ import (
 
 var mysqlDB *gorm.DB
 
-// User table
-type User struct {
-	gorm.Model
-	UserID       string         `gorm:"type:varchar(36);uniqueIndex;not null"` // UUID格式
-	Email        string         `gorm:"type:varchar(255);uniqueIndex;not null"`
-	PasswordHash string         `gorm:"type:varchar(255);not null"` // 存储bcrypt哈希
-	ShortURLs    []UserShortURL `gorm:"foreignKey:UserID;references:UserID;onDelete:CASCADE"`
-}
-
-// User Short URL table
-type UserShortURL struct {
-	gorm.Model
-	OriginalURL string     `gorm:"type:text;not null"`
-	ShortCode   string     `gorm:"type:varchar(10);uniqueIndex;not null"` // 短码6-10位
-	ExpireAt    time.Time  `gorm:"index"`                                 // 过期时间索引
-	AccessCount int        `gorm:"default:0"`
-	ClientIPs   []ClientIP `gorm:"foreignKey:ShortURLID"`           // 一对多关系（一个短链接对应多个IP）
-	UserID      string     `gorm:"type:varchar(36);index;not null"` // 外键关联
-}
-
 func (u UserShortURL) GetOriginalURL() string {
 	return u.OriginalURL
 }
-
 func (u UserShortURL) GetShortCode() string {
 	return u.ShortCode
 }
-
 func (u UserShortURL) GetExpireAt() time.Time {
 	return u.ExpireAt
 }
-
-// Client IP table
-type ClientIP struct {
-	gorm.Model
-	IPAddress  string `gorm:"type:varchar(45);not null"` // IPv4/IPv6地址
-	ShortURLID uint   `gorm:"index;not null"`            // 外键关联UserShortURL
-}
-
-// Public Short URL table
-type PublicShortURL struct {
-	gorm.Model
-	ShortCode   string    `gorm:"size:10;uniqueIndex;not null"` // 短链码
-	OriginalURL string    `gorm:"type:text;not null"`           // 原始URL
-	ExpiresAt   time.Time // 过期时间
-	AccessCount uint      `gorm:"default:0"` // 访问计数
-}
-
 func (p PublicShortURL) GetOriginalURL() string {
 	return p.OriginalURL
 }
-
 func (p PublicShortURL) GetShortCode() string {
 	return p.ShortCode
 }
-
 func (p PublicShortURL) GetExpireAt() time.Time {
 	return p.ExpiresAt
 }
@@ -103,8 +63,8 @@ type ShowCoder interface {
 // Set the maximum idle connections, maximum open connections,
 // and connection maximum lifetime.
 // It also performs database migrations for the User, UserShortURL, and ClientIP tables.
-func InitMysqlDB() error {
-	log.Info().Msg("** Start init mysql db **")
+func InitMysqlDB() {
+	log.Info().Msg("** Start init mysql **")
 
 	var (
 		mydbUser     = viper.GetString("mysql.user")
@@ -116,7 +76,7 @@ func InitMysqlDB() error {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", mydbUser, mydbPassword, mydbHost, mydbPort, mydbName)
 
 	var err error
-	// 尝试连接 MySQL 数据库，最多重试 25 次
+	// try to connect to MySQL, max retries 25 times
 	for range retries {
 		mysqlDB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Silent),
@@ -127,75 +87,72 @@ func InitMysqlDB() error {
 		time.Sleep(maxRetryDelay)
 	}
 	if err != nil {
-		log.Err(err).Msg("Failed to connect to MySQL, has been retried 100 times")
-		return err
+		log.Fatal().Msg("Failed to connect to MySQL, has been retried 100 times.")
 	}
 
 	sqlDB, err := mysqlDB.DB()
 	if err != nil {
-		log.Err(err).Msg("Failed to get underlying *sql.DB")
-		return err
+		log.Fatal().Msg("Failed to get underlying *sql.DB.")
 	}
 
-	sqlDB.SetMaxIdleConns(maxIdleConns)       // 设置空闲连接池大小
-	sqlDB.SetMaxOpenConns(maxOpenConns)       // 设置最大打开连接数
-	sqlDB.SetConnMaxLifetime(connMaxLifetime) // 设置连接最大存活时间
+	sqlDB.SetMaxIdleConns(maxIdleConns)
+	sqlDB.SetMaxOpenConns(maxOpenConns)
+	sqlDB.SetConnMaxLifetime(connMaxLifetime)
 
 	if err := sqlDB.Ping(); err != nil {
-		log.Err(err).Msg("Failed to ping MySQL")
-		return err
+		log.Fatal().Msg("Failed to ping MySQL.")
 	}
-	log.Info().Msg("Successfully connected to MySQL")
 
+	log.Info().Msg("Successfully connected to MySQL.")
+
+	// check whether the private tables exist in the database
 	if !mysqlDB.Migrator().HasTable(&User{}) || !mysqlDB.Migrator().HasTable(&UserShortURL{}) || !mysqlDB.Migrator().HasTable(&ClientIP{}) {
-		log.Info().Msg("MySQL tables do not exist, starting migration")
+		log.Info().Msg("Private tables do not exist, starting migration.")
 		if err := mysqlDB.AutoMigrate(&User{}, &UserShortURL{}, &ClientIP{}); err != nil {
 			log.Err(err).Msg("Failed to migrate MySQL")
 		}
 	} else {
-		log.Info().Msg("MySQL tables already exist, skipping migration")
+		log.Info().Msg("Private tables already exist, skipping migration.")
 	}
 
+	// check whether the public table exists in the database
 	if !mysqlDB.Migrator().HasTable(&PublicShortURL{}) {
-		log.Info().Msg("MySQL public tables do not exist, starting migration")
+		log.Info().Msg("Public public tables do not exist, starting migration.")
 		if err := mysqlDB.AutoMigrate(&PublicShortURL{}); err != nil {
-			log.Err(err).Msg("Failed to migrate PublicShortURL")
+			log.Err(err).Msg("Failed to migrate PublicShortURL.")
 		}
 	} else {
-		log.Info().Msg("MySQL public tables already exist, skipping migration")
+		log.Info().Msg("Public tables already exist, skipping migration.")
 	}
 
-	testMode := viper.GetBool("test_mode")
-	if testMode {
-		log.Debug().Msg("Test mode enabled, check tables difference and force migration")
+	if config.TestMode {
+		log.Debug().Msg("Test mode enabled, check tables difference and force migration.")
 		if err := mysqlDB.AutoMigrate(&User{}, &UserShortURL{}, &ClientIP{}); err != nil {
-			log.Err(err).Msg("Failed to migrate MySQL")
+			log.Err(err).Msg("Failed to migrate MySQL.")
 		}
 		if err := mysqlDB.AutoMigrate(&PublicShortURL{}); err != nil {
-			log.Err(err).Msg("Failed to migrate PublicShortURL")
+			log.Err(err).Msg("Failed to migrate PublicShortURL.")
 		}
 	}
 
-	log.Info().Msg("MySQL migration completed")
+	log.Info().Msg("MySQL migration completed.")
 
-	log.Info().Msg("** Init mysql db finished! **")
-
-	return err
+	log.Info().Msg("** Init mysql finished! **")
 }
 
 // CloseMysqlDB closes the MySQL database connection.
 func CloseMysqlDB() error {
 	sqlDB, err := mysqlDB.DB()
 	if err != nil {
-		log.Err(err).Msg("Failed to get underlying *sql.DB")
+		log.Err(err).Msg("Failed to get underlying *sql.DB.")
 		return err
 	}
 
 	if err := sqlDB.Close(); err != nil {
-		log.Err(err).Msg("Failed to close MySQL connection")
+		log.Err(err).Msg("Failed to close MySQL connection.")
 		return err
 	}
-	log.Info().Msg("MySQL connection closed")
+	log.Info().Msg("MySQL connection closed.")
 	return nil
 }
 
@@ -230,7 +187,7 @@ func GetOriginalURLByShortCode(shortCode string) (string, error) {
 	}
 
 	if shortURL.ExpireAt.Before(time.Now()) {
-		log.Debug().Msg("Short URL has expired")
+		log.Debug().Msg("Short URL has expired.")
 		return "", errors.New("user short URL has expired")
 	}
 
@@ -243,12 +200,12 @@ func GetOriginalURLByShortCode(shortCode string) (string, error) {
 func GetUserShortURLByCode(shortCode string) (UserShortURL, error) {
 	var shortURL UserShortURL
 	if err := mysqlDB.Where("short_code = ?", shortCode).First(&shortURL).Error; err != nil {
-		log.Debug().Msg("User short URL not found")
+		log.Debug().Msg("User short URL not found.")
 		return UserShortURL{}, err
 	}
 
 	if shortURL.ExpireAt.Before(time.Now()) {
-		log.Debug().Msg("Short URL has expired")
+		log.Debug().Msg("Short URL has expired.")
 		return UserShortURL{}, errors.New("short URL has expired")
 	}
 
@@ -258,11 +215,11 @@ func GetUserShortURLByCode(shortCode string) (UserShortURL, error) {
 // CreateUserShortURL creates a new short URL for the user.
 func CreateUserShortURL(short UserShortURL, clientIP string) error {
 	if err := mysqlDB.Create(&short).Error; err != nil {
-		log.Debug().Msg("Failed to save short URL")
+		log.Debug().Msg("Failed to save short URL.")
 		return err
 	}
 	if err := mysqlDB.Create(&ClientIP{IPAddress: clientIP, ShortURLID: short.ID}).Error; err != nil {
-		log.Debug().Msg("Failed to save client IP")
+		log.Debug().Msg("Failed to save client IP.")
 		return err
 	}
 	return nil
@@ -270,7 +227,7 @@ func CreateUserShortURL(short UserShortURL, clientIP string) error {
 
 func ShowCodes(s ShowCoder) (string, string) {
 	if s.GetExpireAt().Before(time.Now()) {
-		log.Debug().Msg("Short URL has expired")
+		log.Debug().Msg("Short URL has expired.")
 		return "", ""
 	}
 	return s.GetOriginalURL(), s.GetShortCode()
@@ -287,7 +244,7 @@ func LogUserAccess(shortCode string, clientIP string) error {
 
 	// 查询短链记录
 	if err = mysqlDB.Where("short_code = ?", shortCode).First(&userShortURL).Error; err != nil {
-		log.Debug().Msg("User short URL not found")
+		log.Debug().Msg("User short URL not found.")
 		return err
 	}
 
@@ -295,12 +252,12 @@ func LogUserAccess(shortCode string, clientIP string) error {
 	if err = mysqlDB.Model(&UserShortURL{}).Where("short_code = ?", shortCode).Updates(map[string]interface{}{
 		"access_count": gorm.Expr("access_count + 1"),
 	}).Error; err != nil {
-		log.Debug().Msg("Failed to update access count")
+		log.Debug().Msg("Failed to update access count.")
 		return err
 	}
 
 	if err = SaveClientIP(userShortURL.ID, clientIP); err != nil {
-		log.Debug().Msg("Failed to append client IP")
+		log.Debug().Msg("Failed to append client IP.")
 		return err
 	}
 
@@ -323,7 +280,7 @@ func SaveClientIP(shortURLID uint, clientIP string) error {
 func GetUserShortURLsByUserID(userID string) (map[string]string, error) {
 	var shortURLs []UserShortURL
 	if err := mysqlDB.Where("user_id = ?", userID).Find(&shortURLs).Error; err != nil {
-		log.Debug().Msg("Failed to get short URLs for userID")
+		log.Debug().Msg("Failed to get short URLs for userID.")
 		return nil, err
 	}
 	codes := make(map[string]string)
@@ -349,7 +306,7 @@ func LogPublicAccess(shortcode string) error {
 
 	// 查询短链记录
 	if err = mysqlDB.Where("short_code = ?", shortcode).First(&publicShortURL).Error; err != nil {
-		log.Debug().Msg("Public short URL not found")
+		log.Debug().Msg("Public short URL not found.")
 		return err
 	}
 
@@ -357,7 +314,7 @@ func LogPublicAccess(shortcode string) error {
 	if err = mysqlDB.Model(&PublicShortURL{}).Where("short_code = ?", shortcode).Updates(map[string]interface{}{
 		"access_count": gorm.Expr("access_count + 1"),
 	}).Error; err != nil {
-		log.Debug().Msg("Failed to update access count")
+		log.Debug().Msg("Failed to update access count.")
 		return err
 	}
 
@@ -371,7 +328,7 @@ func LogPublicAccess(shortcode string) error {
 // You should use the PublicShortCodeCreater function instead.
 func CreatePublicShortURL(short PublicShortURL) error {
 	if err := mysqlDB.Create(&short).Error; err != nil {
-		log.Debug().Msg("Failed to save public short URL")
+		log.Debug().Msg("Failed to save public short URL.")
 		return err
 	}
 	return nil
@@ -381,12 +338,12 @@ func CreatePublicShortURL(short PublicShortURL) error {
 func GetPublicShortURLByShortCode(shortCode string) (string, error) {
 	var publicShortURL PublicShortURL
 	if err := mysqlDB.Where("short_code = ?", shortCode).First(&publicShortURL).Error; err != nil {
-		log.Debug().Msg("Public short URL not found")
+		log.Debug().Msg("Public short URL not found.")
 		return "", err
 	}
 
 	if publicShortURL.ExpiresAt.Before(time.Now()) {
-		log.Debug().Msg("Public short URL has expired")
+		log.Debug().Msg("Public short URL has expired.")
 		return "", errors.New("public short URL has expired")
 	}
 
@@ -397,7 +354,7 @@ func GetPublicShortURLByShortCode(shortCode string) (string, error) {
 func GetAllPublicShortURLs() (map[string]string, error) {
 	var publicShortURLs []PublicShortURL
 	if err := mysqlDB.Find(&publicShortURLs).Error; err != nil {
-		log.Debug().Msg("Failed to get all public short URLs")
+		log.Debug().Msg("Failed to get all public short URLs.")
 		return nil, err
 	}
 	codes := make(map[string]string)
@@ -417,16 +374,16 @@ func DeletePublicShortURLByShortCode(shortCode string) error {
 	var publicShortURL PublicShortURL
 	if err := mysqlDB.Where("short_code = ?", shortCode).First(&publicShortURL).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Debug().Msg("Public short URL not found")
+			log.Debug().Msg("Public short URL not found.")
 			return err
 		} else {
-			log.Debug().Msg("Failed to find public short URL")
+			log.Debug().Msg("Failed to find public short URL.")
 			return err
 		}
 	}
 
 	if err := mysqlDB.Delete(&publicShortURL).Error; err != nil {
-		log.Debug().Msg("Failed to delete public short URL")
+		log.Debug().Msg("Failed to delete public short URL.")
 		return err
 	}
 	return nil
