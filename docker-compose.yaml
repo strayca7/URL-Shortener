@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: bitnami/mysql:8.0
+    container_name: url_mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=famcat777
+      - MYSQL_DATABASE=url_management
+      - MYSQL_USER=url_admin
+      - MYSQL_PASSWORD=admin123
+    volumes:
+      - mysql_data:/bitnami/mysql/data
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    networks:
+      - url_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  etcd:
+    image: bitnami/etcd:3.5
+    container_name: gym_etcd
+    environment:
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd:2380
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_INITIAL_CLUSTER=etcd=http://etcd:2380
+      - ETCD_NAME=etcd
+      - ALLOW_NONE_AUTHENTICATION=yes
+    volumes:
+      - etcd_data:/bitnami/etcd
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    networks:
+      - url_network
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:
+    driver: local
+  etcd_data:
+    driver: local
+
+networks:
+  gym_network:
+    driver: bridge

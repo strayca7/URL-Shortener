@@ -9,8 +9,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 RUN mkdir -p /app/log && chmod 644 /app/log
 COPY . .
 COPY ./config.yaml /app/config.yaml
-RUN go build -trimpath -ldflags="-w -s" \
-    -o /app/main ./cmd/main.go
+RUN go build -o /app/main ./cmd/main.go
 
 ARG TARGETPLATFORM
 FROM alpine:3.21

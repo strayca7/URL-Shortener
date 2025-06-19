@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	TestMode = viper.GetBool("test_mode")
+	TestMode bool
 )
 
 func init() {
@@ -22,6 +22,8 @@ func init() {
 
 	initLogger()
 	initViper()
+
+	TestMode = viper.GetBool("test_mode")
 
 	log.Debug().Msg("Init finish")
 }

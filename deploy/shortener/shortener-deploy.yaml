@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: shortener
-        image: strayca7/url-shortener:v0.0.1
+        image: strayca7/url-shortener:v0.0.2
         resources:
           limits:
             memory: "128Mi"

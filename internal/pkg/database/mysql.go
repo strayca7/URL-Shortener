@@ -64,7 +64,7 @@ type ShowCoder interface {
 // and connection maximum lifetime.
 // It also performs database migrations for the User, UserShortURL, and ClientIP tables.
 func InitMysqlDB() {
-	log.Info().Msg("** Start init mysql db **")
+	log.Info().Msg("** Start init mysql **")
 
 	var (
 		mydbUser     = viper.GetString("mysql.user")
@@ -137,7 +137,7 @@ func InitMysqlDB() {
 
 	log.Info().Msg("MySQL migration completed.")
 
-	log.Info().Msg("** Init mysql db finished! **")
+	log.Info().Msg("** Init mysql finished! **")
 }
 
 // CloseMysqlDB closes the MySQL database connection.
