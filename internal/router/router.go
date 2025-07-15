@@ -33,7 +33,6 @@ func Router(rbacSys *rbacv1.RBACSystem) {
 		public.GET("/shortcodes", handler.HandleGetAllPublicShortURLs)
 		public.DELETE("/short/:code", handler.HandleDeletePublicShortURL)
 	}
-
 	authGroup := r.Group("/v1/auth")
 	// If TestMod is true, then skip the JwtAuth middleware
 	authGroup.Use(middleware.JwtAuth(config.TestMode))
